@@ -75,13 +75,14 @@ export default function Home() {
   const signInWithGoogle = async () => {
     await supabase.auth.signInWithOAuth({
       provider: "google",
-      options: { redirectTo: window.location.origin + "/auth/callback" },
+      options: { redirectTo: "https://ali-agent-v2-0.vercel.app/auth/callback" },
     });
   };
 
   const signOut = async () => {
     await supabase.auth.signOut();
     setUser(null);
+
     setHistory([]);
     setResult(null);
   };
