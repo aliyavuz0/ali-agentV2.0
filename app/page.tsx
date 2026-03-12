@@ -2,6 +2,7 @@
 
 import { useState, useEffect, MouseEvent } from "react"; // MouseEvent eklendi
 import { supabase } from "./lib/supabase";
+import { PolarGrid, Radar, RadarChart, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer } from "recharts";
 
 // ═══ CONSTANTS ═══
 const FILTER_META = [
@@ -411,6 +412,25 @@ export default function Home() {
                     <span className="text-red-500 font-bold text-sm">⛔ BARİYER AKTİF — Genel ortalama ne olursa olsun: TAVSİYE EDİLMEZ</span>
                   </div>
                 )}
+                {/* Radar Chart - Stratejik Analiz */}
+                <div className="bg-[#0D0B08] rounded-2xl border border-[#1A1610] p-6 mb-5">
+                  <h3 className="text-center text-[10px] font-bold text-[#504020] tracking-[3px] uppercase mb-4 text-red-500">Stratejik Puan Dengesi</h3>
+                  <div className="h-[280px] w-full">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <RadarChart cx="50%" cy="50%" outerRadius="80%" data={[
+                        { subject: 'MOTOR', A: getFilterScore('filter_1'), fullMark: 100 },
+                        { subject: 'HAVA', A: getFilterScore('filter_2'), fullMark: 100 },
+                        { subject: 'YAKIT', A: getFilterScore('filter_3'), fullMark: 100 },
+                        { subject: 'EMNİYET', A: getFilterScore('filter_4'), fullMark: 100 },
+                      ]}>
+                        <PolarGrid stroke="#1A1610" />
+                        <PolarAngleAxis dataKey="subject" stroke="#605030" fontSize={10} fontWeight="bold" />
+                        <PolarRadiusAxis angle={30} domain={[0, 100]} tick={false} axisLine={false} />
+                        <Radar name="Ali Agent" dataKey="A" stroke="#EF4444" fill="#EF4444" fillOpacity={0.4} />
+                      </RadarChart>
+                    </ResponsiveContainer>
+                  </div>
+                </div>
                 {(result.special_label === "HARIKA_SIRKET_PAHALI_FIYAT" || (getFilterScore("filter_1") >= 75 && getFilterScore("filter_4") < 60)) && (
                   <div className="mt-3 inline-block bg-yellow-500/10 border border-yellow-500/30 rounded-lg px-6 py-3">
                     <span className="text-yellow-500 font-bold text-sm">⚡ Harika Şirket, Pahalı Fiyat — Düzeltme Bekle</span>
