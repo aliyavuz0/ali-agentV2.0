@@ -48,6 +48,7 @@ const AUDIT_LABELS: Record<string, string> = {
 
 export default function Home() {
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+  const [showSettings, setShowSettings] = useState(false);
   const [user, setUser] = useState<any>(null);
   const [ticker, setTicker] = useState("");
   const [loading, setLoading] = useState(false);
@@ -130,6 +131,26 @@ export default function Home() {
       }
     } catch (err) {
       console.error("Silme hatası:", err);
+    }
+  };
+  const handleDeleteAllHistory = async () => {
+    if (!user) return;
+    const confirmDelete = confirm("Tüm analiz geçmişini silmek istediğine emin misin? Bu işlem geri alınamaz!");
+    if (!confirmDelete) return;
+
+    try {
+      const { error } = await supabase
+        .from("analyses")
+        .delete()
+        .eq("user_id", user.id);
+
+      if (error) throw error;
+      setHistory([]);
+      setShowSettings(false);
+      alert("Tüm geçmiş başarıyla temizlendi.");
+    } catch (err) {
+      console.error("Silme hatası:", err);
+      alert("Silme işlemi başarısız oldu.");
     }
   };
 
@@ -228,8 +249,9 @@ export default function Home() {
       <div className={`${sidebarOpen ? "w-72" : "w-0"} transition-all duration-300 overflow-hidden flex-shrink-0 border-r border-[#1A1610] bg-[#0D0B08]`}>
         <div className="w-72 h-screen flex flex-col">
           {/* User Profile */}
-          <div className="p-4 border-b border-[#1A1610]">
+          <div className="p-4 border-b border-[#1A1610] relative">
             <div className="flex items-center gap-3">
+              {/* Avatar */}
               {user.user_metadata?.avatar_url ? (
                 <img src={user.user_metadata.avatar_url} alt="" className="w-9 h-9 rounded-full" />
               ) : (
@@ -237,13 +259,46 @@ export default function Home() {
                   {user.email?.[0]?.toUpperCase()}
                 </div>
               )}
+
+              {/* Kullanıcı Bilgileri */}
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-semibold text-[#D4C8A0] truncate">
                   {user.user_metadata?.full_name || user.email}
                 </p>
                 <p className="text-[10px] text-[#605030] truncate">{user.email}</p>
               </div>
+
+              {/* ⚙️ AYARLAR BUTONU */}
+              <button
+                onClick={() => setShowSettings(!showSettings)}
+                className={`p-1.5 rounded-md transition-all ${showSettings ? 'bg-red-700/20 text-red-500' : 'text-[#605030] hover:bg-[#13110E] hover:text-[#D4C8A0]'}`}
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z" />
+                </svg>
+              </button>
             </div>
+
+            {/* 🛠️ AYARLAR PANELİ (Dropdown) */}
+            {showSettings && (
+              <div className="mt-2 bg-[#0F0D0A] border border-[#1A1610] rounded-xl shadow-2xl p-2 animate-in fade-in zoom-in-95 duration-200">
+                <p className="text-[9px] font-bold text-[#504020] px-3 py-1 uppercase tracking-[2px] mb-1">Tercihler</p>
+                <div className="flex items-center justify-between px-3 py-2 hover:bg-[#13110E] rounded-lg transition-colors cursor-pointer group">
+                  <span className="text-[11px] text-[#D4C8A0]">Dil / Language</span>
+                  <span className="text-[9px] font-bold text-red-500 bg-red-500/10 px-1.5 py-0.5 rounded border border-red-500/20 uppercase">TR</span>
+                </div>
+                <div className="h-px bg-[#1A1610] my-1"></div>
+                <button
+                  onClick={handleDeleteAllHistory}
+                  className="w-full flex items-center gap-3 px-3 py-2 hover:bg-red-500/10 rounded-lg transition-colors text-left group"
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-red-500"><path d="M3 6h18m-2 0v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6m3 0V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" /></svg>
+                  <span className="text-[11px] font-bold text-red-500">Geçmişi Temizle</span>
+                </button>
+              </div>
+            )}
+
+            {/* ÇIKIŞ BUTONU */}
             <button
               onClick={signOut}
               className="mt-3 w-full py-2 text-xs text-[#605030] hover:text-red-400 border border-[#1A1610] rounded-lg transition-colors cursor-pointer"
