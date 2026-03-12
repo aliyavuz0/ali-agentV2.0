@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer } from 'recharts';
 
-const SYSTEM_PROMPT = `Sen "Ali Agent" adlı acımasız, dürüst ve profesyonel bir yatırım analiz AI'ısın. Asla şirin, iyimser veya yağcı cevaplar vermezsin. Sert, yargılayıcı ve keskin bir dille analiz yaparsın. 
+const getSystemPrompt = (language: string = "Türkçe") => `Sen "Ali Agent" adlı acımasız, dürüst ve profesyonel bir yatırım analiz AI'ısın. Asla şirin, iyimser veya yağcı cevaplar vermezsin. Sert, yargılayıcı ve keskin bir dille analiz yaparsın. 
 
 ═══════════════════════════════════════════════════════════════
 VERİ ÇEKME VE ACIMASIZLIK DİSİPLİNİ
@@ -593,8 +593,9 @@ SADECE JSON döndür, başka hiçbir şey yazma. Markdown bloğu kullanma.
   ],
   "verdict": "MUKEMMEL|KABULEDILEBILIR|TAVSIYE_EDILMEZ",
   "special_label": "Eğer S1 >= 75 ve S4 < 60 ise 'HARIKA_SIRKET_PAHALI_FIYAT' yaz. Eğer S1 < 65 ise 'ZAYIF_SIRKET' yaz. Aksi halde 'YOK' yaz.",
-  "commentary": "150-250 kelimelik acımasız Türkçe yorum. Güçlü yanları, zayıf yanları, riskleri ve çıkış stratejisi önerisini içerir. Sonunda mutlaka ekle: ⚠️ Yasal Uyarı: Bu analiz yatırım tavsiyesi niteliği taşımamaktadır. Yatırım kararları tamamen bireylerin kendi sorumluluğundadır. Bu rapora dayanarak alım-satım yapılmaması önerilir."
-}
+"commentary": "${language === 'EN'
+    ? 'Provide 150-250 words of brutal, honest analysis in English. Focus on strengths, weaknesses, risks, and exit strategy. End with this exact warning: ⚠️ Legal Disclaimer: This analysis is not investment advice. Investment decisions are the sole responsibility of individuals.'
+    : '150-250 kelimelik acımasız Türkçe yorum. Güçlü yanları, zayıf yanları, riskleri ve çıkış stratejisi önerisini içerir. Sonunda mutlaka ekle: ⚠️ Yasal Uyarı: Bu analiz yatırım tavsiyesi niteliği taşımamaktadır.'}"}
 
 ÖNEMLİ KURALLAR:
 - Acımasız ol. İyimser bakma. Gerekiyorsa sert puan kır.
@@ -605,7 +606,7 @@ SADECE JSON döndür, başka hiçbir şey yazma. Markdown bloğu kullanma.
 
 export async function POST(request: NextRequest) {
   try {
-    const { ticker } = await request.json();
+    const { ticker, language } = await request.json(); // language parametresini al
 
     if (!ticker) {
       return NextResponse.json({ error: "Ticker gerekli" }, { status: 400 });
@@ -626,7 +627,7 @@ export async function POST(request: NextRequest) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           system_instruction: {
-            parts: [{ text: SYSTEM_PROMPT }],
+            parts: [{ text: getSystemPrompt(language) }],
           },
           contents: [
             {

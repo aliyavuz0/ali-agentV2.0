@@ -48,6 +48,7 @@ const AUDIT_LABELS: Record<string, string> = {
 
 export default function Home() {
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+  const [language, setLanguage] = useState('TR'); // Varsayılan Türkçe
   const [showSettings, setShowSettings] = useState(false);
   const [user, setUser] = useState<any>(null);
   const [ticker, setTicker] = useState("");
@@ -168,10 +169,10 @@ export default function Home() {
     setExpandedFilter(null);
 
     try {
-      const res = await fetch("/api/analyze", {
+      const response = await fetch("/api/analyze", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ticker: ticker.trim().toUpperCase() }),
+        body: JSON.stringify({ ticker, language }), // Yanına language eklendi
       });
       if (!res.ok) throw new Error("Analiz başarısız oldu");
       const data = await res.json();
@@ -283,9 +284,14 @@ export default function Home() {
             {showSettings && (
               <div className="mt-2 bg-[#0F0D0A] border border-[#1A1610] rounded-xl shadow-2xl p-2 animate-in fade-in zoom-in-95 duration-200">
                 <p className="text-[9px] font-bold text-[#504020] px-3 py-1 uppercase tracking-[2px] mb-1">Tercihler</p>
-                <div className="flex items-center justify-between px-3 py-2 hover:bg-[#13110E] rounded-lg transition-colors cursor-pointer group">
-                  <span className="text-[11px] text-[#D4C8A0]">Dil / Language</span>
-                  <span className="text-[9px] font-bold text-red-500 bg-red-500/10 px-1.5 py-0.5 rounded border border-red-500/20 uppercase">TR</span>
+                <div
+                  onClick={() => setLanguage(language === 'TR' ? 'EN' : 'TR')}
+                  className="flex items-center justify-between px-3 py-2.5 hover:bg-[#13110E] rounded-lg transition-colors cursor-pointer group active:scale-95 duration-200"
+                >
+                  <span className="text-xs text-[#D4C8A0]">Dil / Language</span>
+                  <span className="text-[10px] font-bold text-red-500 bg-red-500/10 px-2.5 py-0.5 rounded border border-red-500/20 uppercase">
+                    {language}
+                  </span>
                 </div>
                 <div className="h-px bg-[#1A1610] my-1"></div>
                 <button
