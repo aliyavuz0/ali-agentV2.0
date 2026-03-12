@@ -638,9 +638,9 @@ export async function POST(request: NextRequest) {
             },
           ],
           generationConfig: {
-            temperature: 0, // Sıfır yaratıcılık
-            topP: 0,        // Sadece en kesin kelimeler
-            topK: 1,        // Hiç tereddüt etme
+            temperature: 0,
+            topP: 0.1,
+            topK: 1,
             maxOutputTokens: 16000,
             responseMimeType: "application/json",
           },
@@ -652,7 +652,7 @@ export async function POST(request: NextRequest) {
       const errText = await response.text();
       console.error("Gemini API hatası:", errText);
       return NextResponse.json(
-        { error: "AI motoru yanıt vermedi. Lütfen tekrar deneyin." },
+        { error: `AI motoru yanıt vermedi: ${errText.substring(0, 200)}` },
         { status: 502 }
       );
     }
