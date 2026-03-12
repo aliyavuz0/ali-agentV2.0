@@ -486,6 +486,8 @@ C) MANTIKSAL MUHAKEME:
    - "Acımasızlık" Testi: Analizinde "olumlu bir önyargı" (optimism bias) olup olmadığını sorgula. İyimserlik nedeniyle yüksek puan vermişsen, o maddeyi en muhafazakâr seviyeye çek.
    - Tez Uyumu: 1. Süzgeç Hendek puanı ile 4. Süzgeç Değerleme puanı arasındaki çelişkiyi (Harika Şirket / Pahalı Fiyat) etiketlerle belirt.
 
+D) MATEMATİKSEL SABİTLEME: Her alt kategori için verdiğin puanı, hangi somut veriye dayanarak verdiğini (örneğin: "Fiyat/Kazanç oranı 15 olduğu için 10 üzerinden 7 puan verilmiştir") 
+JSON içinde belirtmelisin. Matematiksel mantığın bir hesap makinesi kadar soğuk ve tutarlı olmalı.
 ═══════════════════════════════════════════════════════════════
 NİHAİ PUAN
 ═══════════════════════════════════════════════════════════════
@@ -510,45 +512,45 @@ SADECE JSON döndür, başka hiçbir şey yazma. Markdown bloğu kullanma.
     "score_raw": 78,
     "score_normalized": 74.3,
     "subcategories": {
-      "finansallar": { "score": 13, "max": 17, "details": "Kısa açıklama" },
-      "hendek": { "score": 15, "max": 20, "details": "Kısa açıklama" },
-      "potansiyel": { "score": 12, "max": 18, "details": "Kısa açıklama" },
-      "gelir_kalitesi": { "score": 8, "max": 10, "details": "Kısa açıklama" },
-      "musteri": { "score": 7, "max": 10, "details": "Kısa açıklama" },
-      "yonetim": { "score": 10, "max": 15, "details": "Kısa açıklama" },
-      "hisse_performans": { "score": 8, "max": 11, "details": "Kısa açıklama" },
-      "fcf": { "score": 4, "max": 5, "details": "Kısa açıklama" }
+      "finansallar": { "score": 13, "max": 17, "details": "VERİ: [Bulduğun Rakam] - ANALİZ: [Neden bu puanı verdiğin]" },
+      "hendek": { "score": 15, "max": 20, "details": "VERİ: [Bulduğun Rakam] - ANALİZ: [Neden bu puanı verdiğin]" },
+      "potansiyel": { "score": 12, "max": 18, "details": "VERİ: [Bulduğun Rakam] - ANALİZ: [Neden bu puanı verdiğin]" },
+      "gelir_kalitesi": { "score": 8, "max": 10, "details": "VERİ: [Bulduğun Rakam] - ANALİZ: [Neden bu puanı verdiğin]" },
+      "musteri": { "score": 7, "max": 10, "details": "VERİ: [Bulduğun Rakam] - ANALİZ: [Neden bu puanı verdiğin]" },
+      "yonetim": { "score": 10, "max": 15, "details": "VERİ: [Bulduğun Rakam] - ANALİZ: [Neden bu puanı verdiğin]" },
+      "hisse_performans": { "score": 8, "max": 11, "details": "VERİ: [Bulduğun Rakam] - ANALİZ: [Neden bu puanı verdiğin]" },
+      "fcf": { "score": 4, "max": 5, "details": "VERİ: [Bulduğun Rakam] - ANALİZ: [Neden bu puanı verdiğin]" }
     }
   },
   "filter_2": {
     "score": 72,
     "subcategories": {
-      "likidite_mb": { "score": 28, "max": 40, "details": "Kısa açıklama" },
-      "enflasyon_tahvil": { "score": 15, "max": 20, "details": "Kısa açıklama" },
-      "sektorel_uyum": { "score": 16, "max": 20, "details": "Kısa açıklama" },
-      "buyuk_bahis": { "score": 13, "max": 20, "details": "Kısa açıklama" }
+      "likidite_mb": { "score": 28, "max": 40, "details": "VERİ: [Bulduğun Rakam] - ANALİZ: [Neden bu puanı verdiğin]" },
+      "enflasyon_tahvil": { "score": 15, "max": 20, "details": "VERİ: [Bulduğun Rakam] - ANALİZ: [Neden bu puanı verdiğin]" },
+      "sektorel_uyum": { "score": 16, "max": 20, "details": "VERİ: [Bulduğun Rakam] - ANALİZ: [Neden bu puanı verdiğin]" },
+      "buyuk_bahis": { "score": 13, "max": 20, "details": "VERİ: [Bulduğun Rakam] - ANALİZ: [Neden bu puanı verdiğin]" }
     }
   },
   "filter_3": {
     "score": 68,
     "subcategories": {
-      "c_quarterly_eps": { "score": 12, "max": 15, "details": "Kısa açıklama" },
-      "a_annual_eps": { "score": 10, "max": 15, "details": "Kısa açıklama" },
-      "n_new": { "score": 13, "max": 15, "details": "Kısa açıklama" },
-      "s_supply_demand": { "score": 7, "max": 10, "details": "Kısa açıklama" },
-      "l_leader": { "score": 12, "max": 15, "details": "Kısa açıklama" },
-      "i_institutional": { "score": 10, "max": 15, "details": "Kısa açıklama" },
-      "m_market": { "score": 10, "max": 15, "details": "Kısa açıklama" }
+      "c_quarterly_eps": { "score": 12, "max": 15, "details": "VERİ: [Bulduğun Rakam] - ANALİZ: [Neden bu puanı verdiğin]" },
+      "a_annual_eps": { "score": 10, "max": 15, "details": "VERİ: [Bulduğun Rakam] - ANALİZ: [Neden bu puanı verdiğin]" },
+      "n_new": { "score": 13, "max": 15, "details": "VERİ: [Bulduğun Rakam] - ANALİZ: [Neden bu puanı verdiğin]" },
+      "s_supply_demand": { "score": 7, "max": 10, "details": "VERİ: [Bulduğun Rakam] - ANALİZ: [Neden bu puanı verdiğin]" },
+      "l_leader": { "score": 12, "max": 15, "details": "VERİ: [Bulduğun Rakam] - ANALİZ: [Neden bu puanı verdiğin]" },
+      "i_institutional": { "score": 10, "max": 15, "details": "VERİ: [Bulduğun Rakam] - ANALİZ: [Neden bu puanı verdiğin]" },
+      "m_market": { "score": 10, "max": 15, "details": "VERİ: [Bulduğun Rakam] - ANALİZ: [Neden bu puanı verdiğin]" }
     }
   },
   "filter_4": {
     "score": 65,
     "subcategories": {
-      "degerleme": { "score": 20, "max": 30, "details": "Kısa açıklama" },
-      "risk": { "score": 18, "max": 25, "details": "Kısa açıklama" },
-      "dilusyon": { "score": 10, "max": 15, "details": "Kısa açıklama" },
-      "tam_growth": { "score": 12, "max": 20, "details": "Kısa açıklama" },
-      "makro_duyarlilik": { "score": 7, "max": 10, "details": "Kısa açıklama" }
+      "degerleme": { "score": 20, "max": 30, "details": "VERİ: [Bulduğun Rakam] - ANALİZ: [Neden bu puanı verdiğin]" },
+      "risk": { "score": 18, "max": 25, "details": "VERİ: [Bulduğun Rakam] - ANALİZ: [Neden bu puanı verdiğin]" },
+      "dilusyon": { "score": 10, "max": 15, "details": "VERİ: [Bulduğun Rakam] - ANALİZ: [Neden bu puanı verdiğin]" },
+      "tam_growth": { "score": 12, "max": 20, "details": "VERİ: [Bulduğun Rakam] - ANALİZ: [Neden bu puanı verdiğin]" },
+      "makro_duyarlilik": { "score": 7, "max": 10, "details": "VERİ: [Bulduğun Rakam] - ANALİZ: [Neden bu puanı verdiğin]" }
     }
   },
   "weights": { "w1": 1.0, "w2": 1.0, "w3": 1.0, "w4": 1.0 },
@@ -614,9 +616,9 @@ export async function POST(request: NextRequest) {
             },
           ],
           generationConfig: {
-            temperature: 0.1,
-            topP: 0.95,
-            topK: 40,
+            temperature: 0, // Sıfır (0) hata payı bırakır
+            topP: 0.1,      // Sadece en kesin verilere odaklanır
+            topK: 1,        // Karar verirken tereddüt etmez
             maxOutputTokens: 16000,
             responseMimeType: "application/json",
           },
