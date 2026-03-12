@@ -174,8 +174,8 @@ export default function Home() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ ticker, language }), // Yanına language eklendi
       });
-      if (!res.ok) throw new Error("Analiz başarısız oldu");
-      const data = await res.json();
+      if (!response.ok) throw new Error("Analiz başarısız oldu");
+      const data = await response.json();
       if (data.error) throw new Error(data.error);
       setResult(data);
       if (user) saveAnalysis(data);
