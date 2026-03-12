@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 
 const SYSTEM_PROMPT = `Sen "Ali Agent" adlı acımasız, dürüst ve profesyonel bir yatırım analiz AI'ısın. Asla şirin, iyimser veya yağcı cevaplar vermezsin. Sert, yargılayıcı ve keskin bir dille analiz yaparsın. Gerekiyorsa puan kırmaktan asla çekinmezsin. Herhangi bir şekilde imtiyaz sağlamazsın.
 
+VERİ ÇEKME DİSİPLİNİ: Analiz sırasında her bir metrik için (F/K, ROE, Borç/EBITDA vb.) öncelikle Yahoo Finance verilerini baz al. Eğer Yahoo Finance verisine ulaşamıyorsan Google Finance'i kullan. Rakamlar arasında %1'den fazla fark varsa, muhafazakar (düşük) olan rakamı seç. Farklı kaynaklar arasında gezinip ortalama alma, en sağlam gördüğün tek bir rakamı çapa olarak kullan.
+
 Analizlerini gerçekleştirirken şu veri kaynağı hiyerarşisini takip et:
 1. BİRİNCİL KAYNAKLAR: SEC EDGAR (10-K, 10-Q, 8-K), şirket IR portalları, merkez bankası verileri (FRED, TCMB EVDS)
 2. FİNANSAL TERMİNALLER: Yahoo Finance, Google Finance, Investing.com, TradingView, Morningstar, MacroTrends, Gurufocus
@@ -511,7 +513,7 @@ SADECE JSON döndür, başka hiçbir şey yazma. Markdown bloğu kullanma.
   "filter_1": {
     "score_raw": 78,
     "score_normalized": 74.3,
-    "subcategories": {
+    "found_values": { "metric_name": "value" }, "subcategories": {
       "finansallar": { "score": 13, "max": 17, "details": "VERİ: [Bulduğun Rakam] - ANALİZ: [Neden bu puanı verdiğin]" },
       "hendek": { "score": 15, "max": 20, "details": "VERİ: [Bulduğun Rakam] - ANALİZ: [Neden bu puanı verdiğin]" },
       "potansiyel": { "score": 12, "max": 18, "details": "VERİ: [Bulduğun Rakam] - ANALİZ: [Neden bu puanı verdiğin]" },
@@ -524,7 +526,7 @@ SADECE JSON döndür, başka hiçbir şey yazma. Markdown bloğu kullanma.
   },
   "filter_2": {
     "score": 72,
-    "subcategories": {
+    "found_values": { "metric_name": "value" }, "subcategories": {
       "likidite_mb": { "score": 28, "max": 40, "details": "VERİ: [Bulduğun Rakam] - ANALİZ: [Neden bu puanı verdiğin]" },
       "enflasyon_tahvil": { "score": 15, "max": 20, "details": "VERİ: [Bulduğun Rakam] - ANALİZ: [Neden bu puanı verdiğin]" },
       "sektorel_uyum": { "score": 16, "max": 20, "details": "VERİ: [Bulduğun Rakam] - ANALİZ: [Neden bu puanı verdiğin]" },
@@ -533,7 +535,7 @@ SADECE JSON döndür, başka hiçbir şey yazma. Markdown bloğu kullanma.
   },
   "filter_3": {
     "score": 68,
-    "subcategories": {
+    "found_values": { "metric_name": "value" }, "subcategories": {
       "c_quarterly_eps": { "score": 12, "max": 15, "details": "VERİ: [Bulduğun Rakam] - ANALİZ: [Neden bu puanı verdiğin]" },
       "a_annual_eps": { "score": 10, "max": 15, "details": "VERİ: [Bulduğun Rakam] - ANALİZ: [Neden bu puanı verdiğin]" },
       "n_new": { "score": 13, "max": 15, "details": "VERİ: [Bulduğun Rakam] - ANALİZ: [Neden bu puanı verdiğin]" },
@@ -545,7 +547,7 @@ SADECE JSON döndür, başka hiçbir şey yazma. Markdown bloğu kullanma.
   },
   "filter_4": {
     "score": 65,
-    "subcategories": {
+    "found_values": { "metric_name": "value" }, "subcategories": {
       "degerleme": { "score": 20, "max": 30, "details": "VERİ: [Bulduğun Rakam] - ANALİZ: [Neden bu puanı verdiğin]" },
       "risk": { "score": 18, "max": 25, "details": "VERİ: [Bulduğun Rakam] - ANALİZ: [Neden bu puanı verdiğin]" },
       "dilusyon": { "score": 10, "max": 15, "details": "VERİ: [Bulduğun Rakam] - ANALİZ: [Neden bu puanı verdiğin]" },
@@ -616,9 +618,9 @@ export async function POST(request: NextRequest) {
             },
           ],
           generationConfig: {
-            temperature: 0, // Sıfır (0) hata payı bırakır
-            topP: 0.1,      // Sadece en kesin verilere odaklanır
-            topK: 1,        // Karar verirken tereddüt etmez
+            temperature: 0, // Sıfır yaratıcılık
+            topP: 0,        // Sadece en kesin kelimeler
+            topK: 1,        // Hiç tereddüt etme
             maxOutputTokens: 16000,
             responseMimeType: "application/json",
           },
