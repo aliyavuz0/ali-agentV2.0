@@ -596,7 +596,7 @@ export async function POST(request: NextRequest) {
     }
 
     const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -614,9 +614,9 @@ export async function POST(request: NextRequest) {
             },
           ],
           generationConfig: {
-            temperature: 0.0, // Bunu 0.0 yaparak AI'ın "yaratıcılığını" öldürüyoruz, matematikçi yapıyoruz.
-            topP: 0.1,        // En doğru veriye odaklanmasını sağlar.
-            topK: 1,          // Karar verirken tereddüt etmesini engeller.
+            temperature: 0.1,
+            topP: 0.95,
+            topK: 40,
             maxOutputTokens: 16000,
             responseMimeType: "application/json",
           },
