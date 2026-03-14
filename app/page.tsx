@@ -5,30 +5,59 @@ import { supabase } from "./lib/supabase";
 import { PolarGrid, Radar, RadarChart, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer } from "recharts";
 
 // ═══ CONSTANTS ═══
-const FILTER_META = [
-  { key: "filter_1", label: "Finansal Kalite", role: "MOTOR", color: "#EF4444", icon: "⚙" },
-  { key: "filter_2", label: "Makro & Likidite", role: "HAVA DURUMU", color: "#3B82F6", icon: "☁" },
-  { key: "filter_3", label: "CANSLIM Momentum", role: "YAKIT", color: "#22C55E", icon: "⚡" },
-  { key: "filter_4", label: "Değerleme & Risk", role: "EMNİYET KEMERİ", color: "#A855F7", icon: "🛡" },
-];
-
-const SUB_NAMES: Record<string, string> = {
-  finansallar: "Finansallar", hendek: "Hendek (Moat)", potansiyel: "Potansiyel Analizi",
-  gelir_kalitesi: "Gelir Kalitesi", musteri: "Müşteri Analizi", yonetim: "Yönetim & Kültür",
-  hisse_performans: "Hisse Performansı", fcf: "Serbest Nakit Akışı",
-  likidite_mb: "Likidite & MB Politikası", enflasyon_tahvil: "Enflasyon & Tahvil",
-  sektorel_uyum: "Sektörel Uyum", buyuk_bahis: "Büyük Bahis Güveni",
-  c_quarterly_eps: "C — Çeyreklik EPS", a_annual_eps: "A — Yıllık EPS (3Y)",
-  n_new: "N — Yeni Ürün/Yönetim", s_supply_demand: "S — Arz & Talep",
-  l_leader: "L — Lider/Takipçi", i_institutional: "I — Kurumsal Sponsorluk",
-  m_market: "M — Piyasa Yönü", degerleme: "Değerleme", risk: "Sistematik Risk",
-  dilusyon: "Dilüsyon", tam_growth: "TAM & Büyüme", makro_duyarlilik: "Makro Duyarlılık",
+const FILTER_META: Record<string, { key: string; label: string; role: string; color: string; icon: string }[]> = {
+  TR: [
+    { key: "filter_1", label: "Finansal Kalite", role: "MOTOR", color: "#EF4444", icon: "⚙" },
+    { key: "filter_2", label: "Makro & Likidite", role: "HAVA DURUMU", color: "#3B82F6", icon: "☁" },
+    { key: "filter_3", label: "CANSLIM Momentum", role: "YAKIT", color: "#22C55E", icon: "⚡" },
+    { key: "filter_4", label: "Değerleme & Risk", role: "EMNİYET KEMERİ", color: "#A855F7", icon: "🛡" },
+  ],
+  EN: [
+    { key: "filter_1", label: "Financial Quality", role: "ENGINE", color: "#EF4444", icon: "⚙" },
+    { key: "filter_2", label: "Macro & Liquidity", role: "WEATHER", color: "#3B82F6", icon: "☁" },
+    { key: "filter_3", label: "CANSLIM Momentum", role: "FUEL", color: "#22C55E", icon: "⚡" },
+    { key: "filter_4", label: "Valuation & Risk", role: "SAFETY BELT", color: "#A855F7", icon: "🛡" },
+  ],
 };
 
-const REGIME_LABELS: Record<string, { label: string; color: string }> = {
-  normal: { label: "Normal Piyasa", color: "#F59E0B" },
-  bear: { label: "Ayı Piyasası", color: "#EF4444" },
-  bull: { label: "Boğa Piyasası", color: "#22C55E" },
+const SUB_NAMES: Record<string, Record<string, string>> = {
+  TR: {
+    finansallar: "Finansallar", hendek: "Hendek (Moat)", potansiyel: "Potansiyel Analizi",
+    gelir_kalitesi: "Gelir Kalitesi", musteri: "Müşteri Analizi", yonetim: "Yönetim & Kültür",
+    hisse_performans: "Hisse Performansı", fcf: "Serbest Nakit Akışı",
+    likidite_mb: "Likidite & MB Politikası", enflasyon_tahvil: "Enflasyon & Tahvil",
+    sektorel_uyum: "Sektörel Uyum", buyuk_bahis: "Büyük Bahis Güveni",
+    c_quarterly_eps: "C — Çeyreklik EPS", a_annual_eps: "A — Yıllık EPS (3Y)",
+    n_new: "N — Yeni Ürün/Yönetim", s_supply_demand: "S — Arz & Talep",
+    l_leader: "L — Lider/Takipçi", i_institutional: "I — Kurumsal Sponsorluk",
+    m_market: "M — Piyasa Yönü", degerleme: "Değerleme", risk: "Sistematik Risk",
+    dilusyon: "Dilüsyon", tam_growth: "TAM & Büyüme", makro_duyarlilik: "Makro Duyarlılık",
+  },
+  EN: {
+    finansallar: "Financials", hendek: "Moat Analysis", potansiyel: "Potential Analysis",
+    gelir_kalitesi: "Revenue Quality", musteri: "Customer Analysis", yonetim: "Management & Culture",
+    hisse_performans: "Stock Performance", fcf: "Free Cash Flow",
+    likidite_mb: "Liquidity & CB Policy", enflasyon_tahvil: "Inflation & Bonds",
+    sektorel_uyum: "Sector Alignment", buyuk_bahis: "Big Bet Confidence",
+    c_quarterly_eps: "C — Quarterly EPS", a_annual_eps: "A — Annual EPS (3Y)",
+    n_new: "N — New Product/Mgmt", s_supply_demand: "S — Supply & Demand",
+    l_leader: "L — Leader/Laggard", i_institutional: "I — Institutional",
+    m_market: "M — Market Direction", degerleme: "Valuation", risk: "Systematic Risk",
+    dilusyon: "Dilution", tam_growth: "TAM & Growth", makro_duyarlilik: "Macro Sensitivity",
+  },
+};
+
+const REGIME_LABELS: Record<string, Record<string, { label: string; color: string }>> = {
+  TR: {
+    normal: { label: "Normal Piyasa", color: "#F59E0B" },
+    bear: { label: "Ayı Piyasası", color: "#EF4444" },
+    bull: { label: "Boğa Piyasası", color: "#22C55E" },
+  },
+  EN: {
+    normal: { label: "Normal Market", color: "#F59E0B" },
+    bear: { label: "Bear Market", color: "#EF4444" },
+    bull: { label: "Bull Market", color: "#22C55E" },
+  },
 };
 
 const EXIT_COLORS: Record<string, string> = {
@@ -36,14 +65,73 @@ const EXIT_COLORS: Record<string, string> = {
   MAKRO_STOP: "#DC2626", MOMENTUM_KAYBI: "#A855F7",
 };
 
-const EXIT_LABELS: Record<string, string> = {
-  TEZ_CURUME: "TEZ ÇÜRÜME", DEGERLEME_BALONU: "DEĞERLEME BALONU",
-  MAKRO_STOP: "MAKRO STOP-LOSS", MOMENTUM_KAYBI: "MOMENTUM KAYBI",
+const EXIT_LABELS: Record<string, Record<string, string>> = {
+  TR: { TEZ_CURUME: "TEZ ÇÜRÜME", DEGERLEME_BALONU: "DEĞERLEME BALONU", MAKRO_STOP: "MAKRO STOP-LOSS", MOMENTUM_KAYBI: "MOMENTUM KAYBI" },
+  EN: { TEZ_CURUME: "THESIS DECAY", DEGERLEME_BALONU: "VALUATION BUBBLE", MAKRO_STOP: "MACRO STOP-LOSS", MOMENTUM_KAYBI: "MOMENTUM LOSS" },
 };
 
-const AUDIT_LABELS: Record<string, string> = {
-  duplicate_check: "Mükerrer Puanlama", math_verification: "Matematik Sağlama",
-  optimism_check: "İyimserlik Testi", thesis_conflict: "Tez Çelişkisi",
+const AUDIT_LABELS: Record<string, Record<string, string>> = {
+  TR: { duplicate_check: "Mükerrer Puanlama", math_verification: "Matematik Sağlama", optimism_check: "İyimserlik Testi", thesis_conflict: "Tez Çelişkisi" },
+  EN: { duplicate_check: "Duplicate Scoring", math_verification: "Math Verification", optimism_check: "Optimism Check", thesis_conflict: "Thesis Conflict" },
+};
+
+const UI_TEXT: Record<string, Record<string, string>> = {
+  TR: {
+    signOut: "Çıkış Yap", newAnalysis: "+ Yeni Analiz", pastAnalyses: "Geçmiş Analizler",
+    noAnalysis: "Henüz analiz yok.", preferences: "Tercihler", clearHistory: "Geçmişi Temizle",
+    title: "Dörtlü Süzgeç Analiz Motoru", subtitle: "Ticker gir, AI verileri toplar ve 4 süzgeçten geçirir.",
+    analyze: "ANALİZ ET", analyzing: "ANALİZ...",
+    loading1: "Ali Agent çalışıyor... Veriler toplanıyor, süzgeçler puanlanıyor...",
+    loading2: "Bu işlem 30-60 saniye sürebilir.",
+    error: "Hata", finalScore: "NİHAİ PUAN",
+    excellent: "MÜKEMMEL", acceptable: "KABULEDİLEBİLİR", notRecommended: "TAVSİYE EDİLMEZ",
+    barrier: "⛔ BARİYER AKTİF — Genel ortalama ne olursa olsun: TAVSİYE EDİLMEZ",
+    radarTitle: "Stratejik Puan Dengesi",
+    greatCompany: "⚡ Harika Şirket, Pahalı Fiyat — Düzeltme Bekle",
+    greatCompanySub: "Şirket kalitesi yüksek ama mevcut değerleme riskli.",
+    close: "▲ KAPAT", detail: "▼ DETAY", barrierLabel: "BARİYER",
+    selfAudit: "Öz-Denetim Protokolü", exitSignals: "⚠ Çıkış Stratejisi Sinyalleri",
+    commentary: "Ali Agent Yorumu", weightCalc: "Dinamik Ağırlıklandırma Hesabı",
+    regime: "Rejim",
+    disclaimer: "⚠️ Bu analiz yatırım tavsiyesi niteliği taşımamaktadır. Yatırım kararları tamamen bireylerin kendi sorumluluğundadır.",
+    loginTitle: "Dörtlü Süzgeç Analiz Motoru",
+    loginSubtitle: "Hisse senetlerini AI ile acımasızca analiz et. 4 süzgeç, dinamik ağırlıklandırma, öz-denetim protokolü.",
+    loginBtn: "Google ile Giriş Yap",
+    loginNote: "Giriş yaparak analizlerini kaydedebilir ve geçmişine erişebilirsin.",
+    confirmDelete: "Bu analizi silmek istediğine emin misin?",
+    confirmDeleteAll: "Tüm analiz geçmişini silmek istediğine emin misin? Bu işlem geri alınamaz!",
+    deleteSuccess: "Tüm geçmiş başarıyla temizlendi.",
+    deleteFail: "Silme işlemi başarısız oldu.",
+    role: "Rol",
+  },
+  EN: {
+    signOut: "Sign Out", newAnalysis: "+ New Analysis", pastAnalyses: "Past Analyses",
+    noAnalysis: "No analyses yet.", preferences: "Preferences", clearHistory: "Clear History",
+    title: "Four-Filter Analysis Engine", subtitle: "Enter a ticker, AI gathers data and runs 4 filters.",
+    analyze: "ANALYZE", analyzing: "ANALYZING...",
+    loading1: "Ali Agent is working... Gathering data, scoring filters...",
+    loading2: "This may take 30-60 seconds.",
+    error: "Error", finalScore: "FINAL SCORE",
+    excellent: "EXCELLENT", acceptable: "ACCEPTABLE", notRecommended: "NOT RECOMMENDED",
+    barrier: "⛔ BARRIER ACTIVE — Regardless of overall average: NOT RECOMMENDED",
+    radarTitle: "Strategic Score Balance",
+    greatCompany: "⚡ Great Company, Expensive Price — Wait for Correction",
+    greatCompanySub: "Company quality is high but current valuation is risky.",
+    close: "▲ CLOSE", detail: "▼ DETAIL", barrierLabel: "BARRIER",
+    selfAudit: "Self-Audit Protocol", exitSignals: "⚠ Exit Strategy Signals",
+    commentary: "Ali Agent Commentary", weightCalc: "Dynamic Weighting Calculation",
+    regime: "Regime",
+    disclaimer: "⚠️ This analysis does not constitute investment advice. Investment decisions are the sole responsibility of individuals.",
+    loginTitle: "Four-Filter Analysis Engine",
+    loginSubtitle: "Brutally analyze stocks with AI. 4 filters, dynamic weighting, self-audit protocol.",
+    loginBtn: "Sign in with Google",
+    loginNote: "Sign in to save your analyses and access your history.",
+    confirmDelete: "Are you sure you want to delete this analysis?",
+    confirmDeleteAll: "Are you sure you want to delete all analysis history? This cannot be undone!",
+    deleteSuccess: "All history cleared successfully.",
+    deleteFail: "Delete operation failed.",
+    role: "Role",
+  },
 };
 
 export default function Home() {
@@ -59,6 +147,14 @@ export default function Home() {
   const [history, setHistory] = useState<any[]>([]);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [authLoading, setAuthLoading] = useState(true);
+
+  // ═══ TRANSLATION HELPERS ═══
+  const t = UI_TEXT[language] || UI_TEXT.TR;
+  const filters = FILTER_META[language] || FILTER_META.TR;
+  const subs = SUB_NAMES[language] || SUB_NAMES.TR;
+  const regimes = REGIME_LABELS[language] || REGIME_LABELS.TR;
+  const exitLbls = EXIT_LABELS[language] || EXIT_LABELS.TR;
+  const auditLbls = AUDIT_LABELS[language] || AUDIT_LABELS.TR;
 
   // ═══ AUTH ═══
   useEffect(() => {
@@ -123,7 +219,7 @@ export default function Home() {
 
   const handleDelete = async (e: MouseEvent, id: string) => {
     e.stopPropagation();
-    if (!confirm("Bu analizi silmek istediğine emin misin?")) return;
+    if (!confirm(t.confirmDelete)) return;
     try {
       const res = await fetch(`/api/analyze/delete?id=${id}`, { method: 'DELETE' });
       if (res.ok) {
@@ -136,7 +232,7 @@ export default function Home() {
   };
   const handleDeleteAllHistory = async () => {
     if (!user) return;
-    const confirmDelete = confirm("Tüm analiz geçmişini silmek istediğine emin misin? Bu işlem geri alınamaz!");
+    const confirmDelete = confirm(t.confirmDeleteAll);
     if (!confirmDelete) return;
 
     try {
@@ -148,10 +244,10 @@ export default function Home() {
       if (error) throw error;
       setHistory([]);
       setShowSettings(false);
-      alert("Tüm geçmiş başarıyla temizlendi.");
+      alert(t.deleteSuccess);
     } catch (err) {
       console.error("Silme hatası:", err);
-      alert("Silme işlemi başarısız oldu.");
+      alert(t.deleteFail);
     }
   };
 
@@ -202,7 +298,7 @@ export default function Home() {
   const getBgColor = (score: number) =>
     score >= 80 ? "#22C55E" : score >= 60 ? "#F59E0B" : "#EF4444";
 
-  const regime = result ? REGIME_LABELS[result.market_regime] || REGIME_LABELS.normal : null;
+  const regime = result ? regimes[result.market_regime] || regimes.normal : null;
 
   // ═══ AUTH LOADING ═══
   if (authLoading) {
@@ -222,8 +318,8 @@ export default function Home() {
             <div className="w-7 h-7 rounded-md bg-gradient-to-br from-red-600 to-purple-700 flex items-center justify-center text-[11px] font-black text-white">A</div>
             <span className="font-mono text-xs font-bold tracking-[4px] text-red-500">ALİ AGENT V2.0</span>
           </div>
-          <h1 className="text-4xl font-bold text-[#F0E8D0] mb-3">Dörtlü Süzgeç Analiz Motoru</h1>
-          <p className="text-[#605030] mb-8">Hisse senetlerini AI ile acımasızca analiz et. 4 süzgeç, dinamik ağırlıklandırma, öz-denetim protokolü.</p>
+          <h1 className="text-4xl font-bold text-[#F0E8D0] mb-3">{t.loginTitle}</h1>
+          <p className="text-[#605030] mb-8">{t.loginSubtitle}</p>
           <button
             onClick={signInWithGoogle}
             className="inline-flex items-center gap-3 px-8 py-4 bg-[#13110E] border border-[#2A2520] rounded-xl text-[#F0E8D0] font-semibold hover:border-[#4A4530] transition-colors cursor-pointer"
@@ -234,9 +330,9 @@ export default function Home() {
               <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" />
               <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
             </svg>
-            Google ile Giriş Yap
+            {t.loginBtn}
           </button>
-          <p className="text-[#40382A] text-xs mt-6">Giriş yaparak analizlerini kaydedebilir ve geçmişine erişebilirsin.</p>
+          <p className="text-[#40382A] text-xs mt-6">{t.loginNote}</p>
         </div>
       </div>
     );
@@ -283,7 +379,7 @@ export default function Home() {
             {/* 🛠️ AYARLAR PANELİ (Dropdown) */}
             {showSettings && (
               <div className="mt-2 bg-[#0F0D0A] border border-[#1A1610] rounded-xl shadow-2xl p-2 animate-in fade-in zoom-in-95 duration-200">
-                <p className="text-[9px] font-bold text-[#504020] px-3 py-1 uppercase tracking-[2px] mb-1">Tercihler</p>
+                <p className="text-[9px] font-bold text-[#504020] px-3 py-1 uppercase tracking-[2px] mb-1">{t.preferences}</p>
                 <div
                   onClick={() => setLanguage(language === 'TR' ? 'EN' : 'TR')}
                   className="flex items-center justify-between px-3 py-2.5 hover:bg-[#13110E] rounded-lg transition-colors cursor-pointer group active:scale-95 duration-200"
@@ -299,7 +395,7 @@ export default function Home() {
                   className="w-full flex items-center gap-3 px-3 py-2 hover:bg-red-500/10 rounded-lg transition-colors text-left group"
                 >
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-red-500"><path d="M3 6h18m-2 0v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6m3 0V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" /></svg>
-                  <span className="text-[11px] font-bold text-red-500">Geçmişi Temizle</span>
+                  <span className="text-[11px] font-bold text-red-500">{t.clearHistory}</span>
                 </button>
               </div>
             )}
@@ -309,7 +405,7 @@ export default function Home() {
               onClick={signOut}
               className="mt-3 w-full py-2 text-xs text-[#605030] hover:text-red-400 border border-[#1A1610] rounded-lg transition-colors cursor-pointer"
             >
-              Çıkış Yap
+              {t.signOut}
             </button>
           </div>
 
@@ -319,15 +415,15 @@ export default function Home() {
               onClick={() => { setResult(null); setTicker(""); setError(""); setExpandedFilter(null); }}
               className="w-full py-3 bg-red-700/20 border border-red-700/30 rounded-lg text-red-400 text-sm font-bold hover:bg-red-700/30 transition-colors cursor-pointer"
             >
-              + Yeni Analiz
+              {t.newAnalysis}
             </button>
           </div>
 
           {/* History Section */}
           <div className="flex-1 overflow-y-auto px-3 pb-3">
-            <p className="text-[10px] font-bold text-[#504020] tracking-widest mb-2 px-1 uppercase">Geçmiş Analizler</p>
+            <p className="text-[10px] font-bold text-[#504020] tracking-widest mb-2 px-1 uppercase">{t.pastAnalyses}</p>
             {history.length === 0 ? (
-              <p className="text-xs text-[#40382A] px-1 text-center mt-4 italic">Henüz analiz yok.</p>
+              <p className="text-xs text-[#40382A] px-1 text-center mt-4 italic">{t.noAnalysis}</p>
             ) : (
               history.map((item) => {
                 const scoreColor = item.final_score >= 80 ? "#22C55E" : item.final_score >= 60 ? "#F59E0B" : "#EF4444";
@@ -401,8 +497,8 @@ export default function Home() {
               <div className="w-7 h-7 rounded-md bg-gradient-to-br from-red-600 to-purple-700 flex items-center justify-center text-[11px] font-black text-white">A</div>
               <span className="font-mono text-xs font-bold tracking-[4px] text-red-500">ALİ AGENT V2.0</span>
             </div>
-            <h1 className="text-4xl font-bold text-[#F0E8D0] mb-2">Dörtlü Süzgeç Analiz Motoru</h1>
-            <p className="text-sm text-[#605030]">Ticker gir, AI verileri toplar ve 4 süzgeçten geçirir.</p>
+            <h1 className="text-4xl font-bold text-[#F0E8D0] mb-2">{t.title}</h1>
+            <p className="text-sm text-[#605030]">{t.subtitle}</p>
           </div>
 
           {/* SEARCH */}
@@ -422,8 +518,8 @@ export default function Home() {
               className="px-8 py-4 bg-red-700 hover:bg-red-600 disabled:bg-[#1A1610] disabled:text-[#605030] text-white font-bold rounded-xl tracking-wider transition-all flex items-center gap-2 cursor-pointer"
             >
               {loading ? (
-                <><div className="w-4 h-4 border-2 border-[#605030] border-t-[#A08050] rounded-full animate-spin" /> ANALİZ...</>
-              ) : "ANALİZ ET"}
+                <><div className="w-4 h-4 border-2 border-[#605030] border-t-[#A08050] rounded-full animate-spin" /> {t.analyzing}</>
+              ) : t.analyze}
             </button>
           </div>
 
@@ -431,15 +527,15 @@ export default function Home() {
           {loading && (
             <div className="text-center py-16">
               <div className="w-12 h-12 border-2 border-[#1A1610] border-t-red-500 rounded-full animate-spin mx-auto mb-5" />
-              <p className="text-[#605030] animate-pulse">Ali Agent çalışıyor... Veriler toplanıyor, süzgeçler puanlanıyor...</p>
-              <p className="text-[#40382A] text-xs mt-2">Bu işlem 30-60 saniye sürebilir.</p>
+              <p className="text-[#605030] animate-pulse">{t.loading1}</p>
+              <p className="text-[#40382A] text-xs mt-2">{t.loading2}</p>
             </div>
           )}
 
           {/* ERROR */}
           {error && (
             <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-5 mb-6">
-              <p className="text-red-400 font-bold mb-1">Hata</p>
+              <p className="text-red-400 font-bold mb-1">{t.error}</p>
               <p className="text-[#C8A080] text-sm">{error}</p>
             </div>
           )}
@@ -449,7 +545,7 @@ export default function Home() {
             <div className="space-y-5">
               {/* Final Score */}
               <div className="text-center py-10 rounded-2xl border border-[#1A1610] bg-[#0D0B08]">
-                <p className="font-mono text-sm text-[#605030] tracking-widest mb-4">{result.ticker} — NİHAİ PUAN</p>
+                <p className="font-mono text-sm text-[#605030] tracking-widest mb-4">{result.ticker} — {t.finalScore}</p>
                 {regime && (
                   <div className="flex justify-center gap-2 mb-4">
                     <span className="px-3 py-1 rounded-md text-[11px] font-bold tracking-wider" style={{ backgroundColor: regime.color + "15", color: regime.color }}>
@@ -464,18 +560,18 @@ export default function Home() {
                   color: getBgColor(result.final_score),
                   border: `1px solid ${getBgColor(result.final_score)}30`,
                 }}>
-                  {result.verdict === "MUKEMMEL" ? "MÜKEMMEL" : result.verdict === "KABULEDILEBILIR" ? "KABULEDİLEBİLİR" : "TAVSİYE EDİLMEZ"}
+                  {result.verdict === "MUKEMMEL" ? t.excellent : result.verdict === "KABULEDILEBILIR" ? t.acceptable : t.notRecommended}
                 </div>
                 {result.company_name && <p className="text-[#605030] text-sm mt-3">{result.company_name}</p>}
 
                 {result.barrier_triggered && (
                   <div className="mt-5 inline-block bg-red-500/10 border border-red-500/30 rounded-lg px-6 py-3">
-                    <span className="text-red-500 font-bold text-sm">⛔ BARİYER AKTİF — Genel ortalama ne olursa olsun: TAVSİYE EDİLMEZ</span>
+                    <span className="text-red-500 font-bold text-sm">{t.barrier}</span>
                   </div>
                 )}
                 {/* Radar Chart - Stratejik Analiz */}
                 <div className="bg-[#0D0B08] rounded-2xl border border-[#1A1610] p-6 mb-5">
-                  <h3 className="text-center text-[10px] font-bold text-[#504020] tracking-[3px] uppercase mb-4 text-red-500">Stratejik Puan Dengesi</h3>
+                  <h3 className="text-center text-[10px] font-bold text-[#504020] tracking-[3px] uppercase mb-4 text-red-500">{t.radarTitle}</h3>
                   <div className="h-[280px] w-full">
                     <ResponsiveContainer width="100%" height="100%">
                       <RadarChart cx="50%" cy="50%" outerRadius="80%" data={[
@@ -494,19 +590,19 @@ export default function Home() {
                 </div>
                 {(result.special_label === "HARIKA_SIRKET_PAHALI_FIYAT" || (getFilterScore("filter_1") >= 75 && getFilterScore("filter_4") < 60)) && (
                   <div className="mt-3 inline-block bg-yellow-500/10 border border-yellow-500/30 rounded-lg px-6 py-3">
-                    <span className="text-yellow-500 font-bold text-sm">⚡ Harika Şirket, Pahalı Fiyat — Düzeltme Bekle</span>
-                    <span className="text-yellow-500/60 text-xs block mt-1">Şirket kalitesi yüksek ama mevcut değerleme riskli.</span>
+                    <span className="text-yellow-500 font-bold text-sm">{t.greatCompany}</span>
+                    <span className="text-yellow-500/60 text-xs block mt-1">{t.greatCompanySub}</span>
                   </div>
                 )}
               </div>
 
               {/* 4 Filter Cards */}
               <div className="grid grid-cols-2 gap-3">
-                {FILTER_META.map((fm, fi) => {
+                {filters.map((fm: any, fi: number) => {
                   const score = getFilterScore(fm.key);
                   const isExpanded = expandedFilter === fi;
                   const filterData = result[fm.key];
-                  const subs = filterData?.subcategories || {};
+                  const subData = filterData?.subcategories || {};
                   const isBarrier = score < 60;
                   return (
                     <div key={fi} onClick={() => setExpandedFilter(isExpanded ? null : fi)}
@@ -517,28 +613,28 @@ export default function Home() {
                           <span className="text-xl">{fm.icon}</span>
                           <div>
                             <p className="font-bold text-[#B8A870] text-sm">{fm.label}</p>
-                            <p className="text-[10px] text-[#504020]">Rol: {fm.role} · w{fi + 1}={result.weights?.[`w${fi + 1}`] ?? "1.0"}</p>
+                            <p className="text-[10px] text-[#504020]">{t.role}: {fm.role} · w{fi + 1}={result.weights?.[`w${fi + 1}`] ?? "1.0"}</p>
                           </div>
                         </div>
                         <div className="text-right">
                           <span className={`font-mono font-black text-2xl ${getScoreColor(score)}`}>{score?.toFixed(1)}</span>
-                          <p className="text-[10px] mt-1" style={{ color: fm.color + "80" }}>{isExpanded ? "▲ KAPAT" : "▼ DETAY"}</p>
+                          <p className="text-[10px] mt-1" style={{ color: fm.color + "80" }}>{isExpanded ? t.close : t.detail}</p>
                         </div>
                       </div>
                       <div className="h-1.5 bg-[#1A1610] rounded-full overflow-hidden">
                         <div className={`h-full rounded-full transition-all duration-700 ${getBarColor(score)}`} style={{ width: `${Math.min(score || 0, 100)}%` }} />
                       </div>
-                      {isBarrier && <span className="inline-block mt-2 text-[10px] font-bold text-red-500 bg-red-500/10 px-2 py-0.5 rounded">BARİYER</span>}
-                      {isExpanded && Object.keys(subs).length > 0 && (
+                      {isBarrier && <span className="inline-block mt-2 text-[10px] font-bold text-red-500 bg-red-500/10 px-2 py-0.5 rounded">{t.barrierLabel}</span>}
+                      {isExpanded && Object.keys(subData).length > 0 && (
                         <div className="mt-5 pt-4 border-t border-[#1A1610]">
-                          <div className={`grid gap-x-6 gap-y-1 ${Object.keys(subs).length > 4 ? "grid-cols-2" : "grid-cols-1"}`}>
-                            {Object.entries(subs).map(([key, val]: [string, any]) => {
+                          <div className={`grid gap-x-6 gap-y-1 ${Object.keys(subData).length > 4 ? "grid-cols-2" : "grid-cols-1"}`}>
+                            {Object.entries(subData).map(([key, val]: [string, any]) => {
                               const pct = val.max > 0 ? (val.score / val.max) * 100 : 0;
                               const barClr = pct >= 70 ? "bg-green-500" : pct >= 45 ? "bg-yellow-500" : "bg-red-500";
                               return (
                                 <div key={key} className="mb-3">
                                   <div className="flex justify-between items-baseline mb-1">
-                                    <span className="text-xs text-[#B8A870] font-semibold">{SUB_NAMES[key] || key}</span>
+                                    <span className="text-xs text-[#B8A870] font-semibold">{subs[key] || key}</span>
                                     <span className={`font-mono text-xs font-bold ${pct >= 70 ? "text-green-500" : pct >= 45 ? "text-yellow-500" : "text-red-500"}`}>{val.score}/{val.max}</span>
                                   </div>
                                   <div className="h-1 bg-[#1A1610] rounded-full overflow-hidden">
@@ -561,12 +657,12 @@ export default function Home() {
                 <div className="bg-[#0D0B08] border border-[#1A1610] rounded-xl p-6">
                   <h3 className="font-bold text-[#D4C8A0] mb-4 flex items-center gap-2">
                     <span className={result.barrier_triggered ? "text-red-500" : "text-green-500"}>{result.barrier_triggered ? "✗" : "✓"}</span>
-                    Öz-Denetim Protokolü
+                    {t.selfAudit}
                   </h3>
                   <div className="space-y-3">
                     {Object.entries(result.self_audit).map(([key, val]: [string, any]) => (
                       <div key={key} className="flex gap-3 pb-3 border-b border-[#1A1610] last:border-0">
-                        <span className="font-mono text-[10px] font-bold text-[#706040] min-w-[140px] pt-0.5">{AUDIT_LABELS[key] || key}</span>
+                        <span className="font-mono text-[10px] font-bold text-[#706040] min-w-[140px] pt-0.5">{auditLbls[key] || key}</span>
                         <span className="text-xs text-[#A09060] leading-relaxed">{val}</span>
                       </div>
                     ))}
@@ -577,13 +673,13 @@ export default function Home() {
               {/* Exit Signals */}
               {result.exit_signals?.some((s: any) => s.active) && (
                 <div className="bg-[#0D0B08] border border-red-500/20 rounded-xl p-6">
-                  <h3 className="font-bold text-red-400 mb-4">⚠ Çıkış Stratejisi Sinyalleri</h3>
+                  <h3 className="font-bold text-red-400 mb-4">{t.exitSignals}</h3>
                   <div className="space-y-3">
                     {result.exit_signals.filter((s: any) => s.active).map((sig: any, i: number) => (
                       <div key={i} className="flex items-center gap-3 pb-3 border-b border-[#1A1610] last:border-0">
                         <span className="font-mono text-[10px] font-bold px-3 py-1 rounded whitespace-nowrap"
                           style={{ backgroundColor: (EXIT_COLORS[sig.type] || "#EF4444") + "15", color: EXIT_COLORS[sig.type] || "#EF4444" }}>
-                          {EXIT_LABELS[sig.type] || sig.type}
+                          {exitLbls[sig.type] || sig.type}
                         </span>
                         <span className="text-xs text-[#B8A870] leading-relaxed">{sig.message}</span>
                       </div>
@@ -595,7 +691,7 @@ export default function Home() {
               {/* Commentary */}
               {result.commentary && (
                 <div className="bg-[#0D0B08] border border-[#1A1610] rounded-xl p-6">
-                  <h3 className="font-bold text-[#D4C8A0] mb-3">Ali Agent Yorumu</h3>
+                  <h3 className="font-bold text-[#D4C8A0] mb-3">{t.commentary}</h3>
                   <p className="text-sm text-[#B8A870] leading-[1.8] whitespace-pre-wrap">{result.commentary}</p>
                 </div>
               )}
@@ -603,16 +699,16 @@ export default function Home() {
               {/* Dynamic Weighting */}
               {result.weights && (
                 <div className="bg-[#0D0B08] border border-[#1A1610] rounded-xl p-6">
-                  <h3 className="font-bold text-[#A09060] mb-3 text-sm">Dinamik Ağırlıklandırma Hesabı</h3>
+                  <h3 className="font-bold text-[#A09060] mb-3 text-sm">{t.weightCalc}</h3>
                   <div className="font-mono text-xs text-[#706040] bg-[#090807] rounded-lg p-4 space-y-1">
-                    <p>Rejim: <span style={{ color: regime?.color }}>{regime?.label}</span>
+                    <p>{t.regime}: <span style={{ color: regime?.color }}>{regime?.label}</span>
                       {result.regime_reason && <span className="text-[#504020]"> — {result.regime_reason}</span>}
                     </p>
                     <p className="text-[#A09060]">
                       ({getFilterScore("filter_1").toFixed(1)}×{result.weights.w1} + {getFilterScore("filter_2").toFixed(1)}×{result.weights.w2} + {getFilterScore("filter_3").toFixed(1)}×{result.weights.w3} + {getFilterScore("filter_4").toFixed(1)}×{result.weights.w4}) / ({result.weights.w1}+{result.weights.w2}+{result.weights.w3}+{result.weights.w4})
                     </p>
                     <p className={`font-bold ${getScoreColor(result.final_score)}`}>
-                      = {result.final_score?.toFixed(2)} → {result.verdict === "MUKEMMEL" ? "MÜKEMMEL" : result.verdict === "KABULEDILEBILIR" ? "KABULEDİLEBİLİR" : "TAVSİYE EDİLMEZ"}
+                      = {result.final_score?.toFixed(2)} → {result.verdict === "MUKEMMEL" ? t.excellent : result.verdict === "KABULEDILEBILIR" ? t.acceptable : t.notRecommended}
                     </p>
                   </div>
                 </div>
@@ -620,7 +716,7 @@ export default function Home() {
 
               {/* Disclaimer */}
               <div className="bg-red-500/5 border border-red-500/10 rounded-xl p-4 text-center">
-                <p className="text-[11px] text-red-400/70">⚠️ Bu analiz yatırım tavsiyesi niteliği taşımamaktadır. Yatırım kararları tamamen bireylerin kendi sorumluluğundadır.</p>
+                <p className="text-[11px] text-red-400/70">{t.disclaimer}</p>
               </div>
             </div>
           )}
