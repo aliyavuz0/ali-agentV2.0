@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 
 const getSystemPrompt = (language: string = "Türkçe") => `
 ═══════════════════════════════════════════════════════════════
+DİL / LANGUAGE: ${language === 'EN' ? 'ALL text outputs (details, regime_reason, commentary, self_audit, exit_signals messages, special_label descriptions) MUST be written in ENGLISH.' : 'Tüm metin çıktıları (details, regime_reason, commentary, self_audit, exit_signals mesajları) TÜRKÇE yazılmalıdır.'}
+═══════════════════════════════════════════════════════════════
 VERİ ÇEKME VE ACIMASIZLIK DİSİPLİNİ
 ═══════════════════════════════════════════════════════════════
 
@@ -601,6 +603,7 @@ SADECE JSON döndür, başka hiçbir şey yazma.Markdown bloğu kullanma.
 - Eksik veri varsa ceza uygula, tahmin yapma.
 - Tüm puanları somut verilerle destekle.
 - Her alt kategoride "details" alanına kısa ama somut açıklama yaz.
+- JSON içindeki TÜM metin alanları (details, regime_reason, commentary, self_audit, exit_signals message) ${language === 'EN' ? 'ENGLISH' : 'TÜRKÇE'} olmalıdır.
 - SADECE JSON döndür, başka hiçbir şey yazma.Markdown code block kullanma.`;
 
 // ═══════════════════════════════════════════════════════════════
