@@ -603,6 +603,125 @@ SADECE JSON döndür, başka hiçbir şey yazma.Markdown bloğu kullanma.
 - Her alt kategoride "details" alanına kısa ama somut açıklama yaz.
 - SADECE JSON döndür, başka hiçbir şey yazma.Markdown code block kullanma.`;
 
+// ═══════════════════════════════════════════════════════════════
+// AI PROVIDER FUNCTIONS
+// ═══════════════════════════════════════════════════════════════
+
+async function callGemini(ticker: string, language: string): Promise<{ success: boolean; data?: any; fallback?: boolean; error?: string }> {
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) return { success: false, fallback: true, error: "Gemini API key bulunamadı" };
+
+  const response = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        system_instruction: {
+          parts: [{ text: getSystemPrompt(language) }],
+        },
+        contents: [
+          {
+            parts: [
+              {
+                text: `${ticker} hissesini Dörtlü Süzgeç Metodolojisi ile tam analiz et. En güncel finansal verileri, makro ekonomik durumu, momentum göstergelerini ve değerleme metriklerini kullanarak 4 süzgeci detaylı puanla. Piyasa rejimini belirle, dinamik ağırlıklandırmayı uygula, öz-denetim protokolünü çalıştır ve nihai skoru hesapla. SADECE JSON formatında cevap ver.`,
+              },
+            ],
+          },
+        ],
+        generationConfig: {
+          temperature: 0,
+          topP: 0.1,
+          topK: 1,
+          maxOutputTokens: 16000,
+          responseMimeType: "application/json",
+        },
+      }),
+    }
+  );
+
+  if (!response.ok) {
+    const errText = await response.text();
+    console.error("Gemini API hatası:", errText);
+    if (response.status === 429) {
+      return { success: false, fallback: true, error: "Gemini kotası doldu" };
+    }
+    return { success: false, fallback: false, error: `Gemini hatası: ${errText.substring(0, 200)}` };
+  }
+
+  const data = await response.json();
+  const text = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
+
+  try {
+    const jsonMatch =
+      text.match(/```json\s*([\s\S]*?)```/) ||
+      text.match(/```\s*([\s\S]*?)```/) ||
+      [null, text];
+    const result = JSON.parse(jsonMatch[1].trim());
+    result._provider = "gemini";
+    return { success: true, data: result };
+  } catch {
+    console.error("Gemini JSON parse hatası. Ham cevap:", text);
+    return { success: false, fallback: true, error: "Gemini çıktısı işlenemedi" };
+  }
+}
+
+async function callClaude(ticker: string, language: string): Promise<{ success: boolean; data?: any; error?: string }> {
+  const apiKey = process.env.ANTHROPIC_API_KEY;
+  if (!apiKey) return { success: false, error: "Claude API key bulunamadı" };
+
+  const response = await fetch(
+    "https://api.anthropic.com/v1/messages",
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-api-key": apiKey,
+        "anthropic-version": "2023-06-01",
+      },
+      body: JSON.stringify({
+        model: "claude-sonnet-4-20250514",
+        max_tokens: 16000,
+        temperature: 0,
+        top_k: 1,
+        system: getSystemPrompt(language),
+        messages: [
+          {
+            role: "user",
+            content: `${ticker} hissesini Dörtlü Süzgeç Metodolojisi ile tam analiz et. En güncel finansal verileri, makro ekonomik durumu, momentum göstergelerini ve değerleme metriklerini kullanarak 4 süzgeci detaylı puanla. Piyasa rejimini belirle, dinamik ağırlıklandırmayı uygula, öz-denetim protokolünü çalıştır ve nihai skoru hesapla. SADECE JSON formatında cevap ver.`,
+          },
+        ],
+      }),
+    }
+  );
+
+  if (!response.ok) {
+    const errText = await response.text();
+    console.error("Claude API hatası:", errText);
+    return { success: false, error: `Claude hatası: ${errText.substring(0, 200)}` };
+  }
+
+  const data = await response.json();
+  const text = data.content?.[0]?.text || "";
+
+  try {
+    const jsonMatch =
+      text.match(/```json\s*([\s\S]*?)```/) ||
+      text.match(/```\s*([\s\S]*?)```/) ||
+      [null, text];
+    const result = JSON.parse(jsonMatch[1].trim());
+    result._provider = "claude";
+    return { success: true, data: result };
+  } catch {
+    console.error("Claude JSON parse hatası. Ham cevap:", text);
+    return { success: false, error: "Claude çıktısı işlenemedi" };
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// MAIN API HANDLER — GEMINI FIRST, CLAUDE FALLBACK
+// ═══════════════════════════════════════════════════════════════
+
 export async function POST(request: NextRequest) {
   try {
     const { ticker, language } = await request.json();
@@ -611,69 +730,35 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Ticker gerekli" }, { status: 400 });
     }
 
-    const apiKey = process.env.ANTHROPIC_API_KEY;
-    if (!apiKey) {
-      return NextResponse.json(
-        { error: "API key bulunamadı" },
-        { status: 500 }
-      );
+    // 1) Try Gemini first
+    console.log(`[${ticker}] Gemini ile analiz başlatılıyor...`);
+    const geminiResult = await callGemini(ticker, language);
+
+    if (geminiResult.success) {
+      console.log(`[${ticker}] Gemini başarılı ✓`);
+      return NextResponse.json(geminiResult.data);
     }
 
-    const response = await fetch(
-      "https://api.anthropic.com/v1/messages",
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-api-key": apiKey,
-          "anthropic-version": "2023-06-01",
-        },
-        body: JSON.stringify({
-          model: "claude-sonnet-4-20250514",
-          max_tokens: 16000,
-          temperature: 0,
-          top_k: 1,
-          system: getSystemPrompt(language),
-          messages: [
-            {
-              role: "user",
-              content: `${ticker} hissesini Dörtlü Süzgeç Metodolojisi ile tam analiz et. En güncel finansal verileri, makro ekonomik durumu, momentum göstergelerini ve değerleme metriklerini kullanarak 4 süzgeci detaylı puanla. Piyasa rejimini belirle, dinamik ağırlıklandırmayı uygula, öz-denetim protokolünü çalıştır ve nihai skoru hesapla. SADECE JSON formatında cevap ver.`,
-            },
-          ],
-        }),
-      }
-    );
+    // 2) If Gemini failed with fallback flag, try Claude
+    if (geminiResult.fallback) {
+      console.log(`[${ticker}] Gemini başarısız (${geminiResult.error}), Claude'a geçiliyor...`);
+      const claudeResult = await callClaude(ticker, language);
 
-    if (!response.ok) {
-      const errText = await response.text();
-      console.error("Claude API hatası:", errText);
+      if (claudeResult.success) {
+        console.log(`[${ticker}] Claude başarılı ✓`);
+        return NextResponse.json(claudeResult.data);
+      }
+
       return NextResponse.json(
-        { error: `AI motoru yanıt vermedi: ${errText.substring(0, 200)}` },
+        { error: `Her iki AI motoru da başarısız oldu. Gemini: ${geminiResult.error} | Claude: ${claudeResult.error}` },
         { status: 502 }
       );
     }
 
-    const data = await response.json();
-
-    const text =
-      data.content?.[0]?.text || "";
-
-    let result;
-    try {
-      const jsonMatch =
-        text.match(/```json\s*([\s\S]*?)```/) ||
-        text.match(/```\s*([\s\S]*?)```/) ||
-        [null, text];
-      result = JSON.parse(jsonMatch[1].trim());
-    } catch {
-      console.error("JSON parse hatası. Ham cevap:", text);
-      return NextResponse.json(
-        { error: "AI çıktısı işlenemedi. Lütfen tekrar deneyin." },
-        { status: 500 }
-      );
-    }
-
-    return NextResponse.json(result);
+    return NextResponse.json(
+      { error: geminiResult.error || "AI motoru yanıt vermedi" },
+      { status: 502 }
+    );
   } catch (error: any) {
     console.error("Sunucu hatası:", error);
     return NextResponse.json(
@@ -681,4 +766,4 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     );
   }
-}
+}
