@@ -712,6 +712,7 @@ async function gatherDataWithPerplexity(ticker: string): Promise<{ success: bool
           { role: "user", content: DATA_GATHERING_PROMPT(ticker) },
         ],
         temperature: 0,
+        top_p: 0.1,
         max_tokens: 8000,
       }),
     });
@@ -753,7 +754,7 @@ async function analyzeWithClaude(ticker: string, gatheredData: string, language:
         model: "claude-sonnet-4-20250514",
         max_tokens: 16000,
         temperature: 0,
-        top_k: 1,
+        top_p: 0.1,
         system: getSystemPrompt(language),
         messages: [
           {
