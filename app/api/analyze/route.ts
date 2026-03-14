@@ -605,13 +605,13 @@ SADECE JSON döndür, başka hiçbir şey yazma.Markdown bloğu kullanma.
 
 export async function POST(request: NextRequest) {
   try {
-    const { ticker, language } = await request.json(); // language parametresini al
+    const { ticker, language } = await request.json();
 
     if (!ticker) {
       return NextResponse.json({ error: "Ticker gerekli" }, { status: 400 });
     }
 
-    const apiKey = process.env.GEMINI_API_KEY;
+    const apiKey = process.env.ANTHROPIC_API_KEY;
     if (!apiKey) {
       return NextResponse.json(
         { error: "API key bulunamadı" },
@@ -620,37 +620,32 @@ export async function POST(request: NextRequest) {
     }
 
     const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
+      "https://api.anthropic.com/v1/messages",
       {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "x-api-key": apiKey,
+          "anthropic-version": "2023-06-01",
+        },
         body: JSON.stringify({
-          system_instruction: {
-            parts: [{ text: getSystemPrompt(language) }],
-          },
-          contents: [
+          model: "claude-3-5-sonnet-20241022",
+          max_tokens: 16000,
+          temperature: 0,
+          system: getSystemPrompt(language),
+          messages: [
             {
-              parts: [
-                {
-                  text: `${ticker} hissesini Dörtlü Süzgeç Metodolojisi ile tam analiz et. En güncel finansal verileri, makro ekonomik durumu, momentum göstergelerini ve değerleme metriklerini kullanarak 4 süzgeci detaylı puanla. Piyasa rejimini belirle, dinamik ağırlıklandırmayı uygula, öz-denetim protokolünü çalıştır ve nihai skoru hesapla. SADECE JSON formatında cevap ver.`,
-                },
-              ],
+              role: "user",
+              content: `${ticker} hissesini Dörtlü Süzgeç Metodolojisi ile tam analiz et. En güncel finansal verileri, makro ekonomik durumu, momentum göstergelerini ve değerleme metriklerini kullanarak 4 süzgeci detaylı puanla. Piyasa rejimini belirle, dinamik ağırlıklandırmayı uygula, öz-denetim protokolünü çalıştır ve nihai skoru hesapla. SADECE JSON formatında cevap ver.`,
             },
           ],
-          generationConfig: {
-            temperature: 0,
-            topP: 0.1,
-            topK: 1,
-            maxOutputTokens: 16000,
-            responseMimeType: "application/json",
-          },
         }),
       }
     );
 
     if (!response.ok) {
       const errText = await response.text();
-      console.error("Gemini API hatası:", errText);
+      console.error("Claude API hatası:", errText);
       return NextResponse.json(
         { error: `AI motoru yanıt vermedi: ${errText.substring(0, 200)}` },
         { status: 502 }
@@ -660,7 +655,7 @@ export async function POST(request: NextRequest) {
     const data = await response.json();
 
     const text =
-      data.candidates?.[0]?.content?.parts?.[0]?.text || "";
+      data.content?.[0]?.text || "";
 
     let result;
     try {
