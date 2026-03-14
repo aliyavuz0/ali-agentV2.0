@@ -236,12 +236,11 @@ export default function Home() {
     if (!confirmDelete) return;
 
     try {
-      const { error } = await supabase
-        .from("analyses")
-        .delete()
-        .eq("user_id", user.id);
+      const res = await fetch(`/api/analyze/delete-all?userId=${user.id}`, { method: 'DELETE' });
+      const data = await res.json();
+      
+      if (!res.ok) throw new Error(data.error || "Silme işlemi başarısız");
 
-      if (error) throw error;
       setHistory([]);
       setShowSettings(false);
       alert(t.deleteSuccess);
