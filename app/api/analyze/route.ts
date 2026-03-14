@@ -608,49 +608,85 @@ SADECE JSON döndür, başka hiçbir şey yazma.Markdown bloğu kullanma.
 // ═══════════════════════════════════════════════════════════════
 
 const DATA_GATHERING_PROMPT = (ticker: string) => `
-${ticker} hissesi için aşağıdaki TÜM verileri internet üzerinden araştır ve topla. Her veriyi MUTLAKA somut rakamlarla ver. Bulamadığın veriyi "VERİ YOK" olarak belirt.
+${ticker} hissesi için aşağıdaki verileri Yahoo Finance, Google Finance, Macrotrends, Finviz, MarketWatch, SEC filings ve diğer güvenilir finansal kaynaklardan araştır ve topla.
+
+KRİTİK KURALLAR:
+1. ASLA "VERİ YOK" yazma eğer veriyi tahmin edebilecek kadar bilgi varsa. Mevcut kaynaklardan çıkarım yap.
+2. Kesin rakam bulamazsan, güvenilir kaynaklardan yaklaşık değer ver ve "(yaklaşık)" notu düş.
+3. "VERİ YOK" SADECE gerçekten hiçbir kaynakta bulunmayan niş metrikler için kullanılabilir.
+4. ${ticker} büyük/orta ölçekli bir şirketse, temel finansal verilerin TAMAMINI bulmak zorundasın.
 
 ═══ 1. FİNANSAL VERİLER ═══
 - Şirket adı, sektörü, güncel hisse fiyatı, market cap
 - Nakit ve nakit benzerleri, toplam borç (son bilanço)
-- Brüt Kâr Marjı %, ROA %, ROE %, ROIC % (son dönem + önceki dönem trend)
-- Serbest Nakit Akışı (FCF) son 3 yıl
-- EPS (son çeyrek gerçekleşen vs beklenti, yıllık büyüme), Borç/EBITDA
+- Brüt Kâr Marjı (Gross Margin) %
+- ROA %, ROE %, ROIC % (son dönem + önceki dönem karşılaştırma)
+- Serbest Nakit Akışı (FCF) son 3 yıl trendi
+- EPS: son çeyrek gerçekleşen vs analist beklentisi, yıllık büyüme oranı
+- Gelir büyümesi son 3 yıl (yıllık %)
+- Borç/EBITDA oranı
 
 ═══ 2. HENDEK / MOAT VERİLERİ ═══
-- Ağ etkisi, geçiş maliyeti, patent sayısı, marka gücü
-- Rakipler ve pazar payı sıralaması, rekabet avantajı trendi
+- Ağ etkisi var mı? Kullanıcı/ekosistem büyüklüğü
+- Geçiş maliyeti/müşteri bağlılığı
+- Patent sayısı, marka gücü, özel lisanslar
+- Rakipler ve pazar payı sıralaması (ilk 5)
+- Rekabet avantajı güçleniyor mu zayıflıyor mu?
 
 ═══ 3. POTANSİYEL VE BÜYÜME ═══
-- Yeni ürünler/pazarlar, organik büyüme vs M&A oranı
-- Pazar liderliği, TAM büyüklüğü, penetrasyon oranı %
+- Yeni ürünler, stratejik girişimler, yeni pazarlar
+- Büyüme organik mi yoksa M&A ile mi?
+- Sektörde kaçıncı sırada? (pazar lideri mi?)
+- TAM (Total Addressable Market) büyüklüğü
+- Pazar penetrasyon oranı %
 
 ═══ 4. GELİR KALİTESİ ═══
-- Tekrarlayan gelir oranı %, fiyatlama gücü, CAC trendi, resesyon direnci
+- Tekrarlayan gelir oranı % (abonelik/recurring varsa)
+- Fiyatlama gücü (son fiyat artışları yapabildi mi?)
+- Resesyon direnci (sektör döngüsel mi defansif mi?)
 
 ═══ 5. YÖNETİM ═══
-- CEO bilgisi, insider ownership %, Glassdoor puanı, şirket misyonu
+- CEO kim? Kurucu mu? Ne zamandır görevde?
+- Insider ownership % (yönetimin hisse sahipliği)
+- Glassdoor puanı (veya çalışan memnuniyeti)
+- Şirket misyonu
 
 ═══ 6. HİSSE PERFORMANSI ═══
-- Son 5 yılda hisse getirisi vs S&P 500, buyback programları
-- Temettü politikası, son 4 çeyrek EPS beat/miss, 52 hafta high/low
+- Son 1 yıl ve 5 yıl hisse getirisi vs S&P 500
+- Hisse geri alım (buyback) programı var mı? Büyüklüğü?
+- Temettü politikası (ödüyor mu, yield?)
+- Son 4 çeyrek EPS: beat mi miss mi?
+- 52 haftalık en yüksek ve en düşük fiyat
 
-═══ 7. MAKRO VERİLER ═══
-- Fed faiz oranı ve yönü, M2 para arzı trendi
-- CPI/PCE enflasyon, yield curve spread (2y-10y, 3m-10y)
-- DXY seviyesi ve trendi, VIX seviyesi, S&P 500 genel trend
+═══ 7. MAKRO VERİLER (GÜNCEL) ═══
+- Fed funds rate ve yönü (artırım/indirim/sabit?)
+- M2 para arzı trendi (artıyor/azalıyor?)
+- Son CPI ve PCE enflasyon verisi
+- 2y-10y Treasury spread (pozitif/negatif?)
+- DXY endeks seviyesi
+- VIX endeks seviyesi
+- S&P 500 son durum (yükseliş/düzeltme/düşüş?)
 
 ═══ 8. DEĞERLEME VERİLERİ ═══
-- Forward P/E, EV/FCF, EV/EBITDA (hepsi sektör ortalaması ile)
-- PEG oranı, analist hedef fiyat, kurumsal sahiplik değişimi
-- SBC/market cap oranı, 3 yıllık dilüsyon, float ve ADTV
+- Trailing P/E ve Forward P/E (sektör ort. ile karşılaştır)
+- EV/EBITDA (sektör ort. ile karşılaştır)
+- PEG oranı
+- Analist konsensüs hedef fiyat ve mevcut fiyattan upside %
+- Kurumsal yatırımcı sahiplik oranı ve son çeyrek değişimi
+- SBC (hisse bazlı ücret) / gelir oranı
+- Son 3 yılda toplam hisse sayısı değişimi (dilüsyon)
+- Günlük ortalama işlem hacmi (ADTV)
 
 ═══ 9. RİSK VERİLERİ ═══
-- Regülasyon riskleri, en büyük müşteri gelir payı %
-- Tedarik zinciri bağımlılıkları, ESG skoru, M&A geçmişi
+- Aktif regülasyon soruşturmaları veya davalar
+- En büyük müşterinin gelirdeki payı %
+- Tedarik zinciri riskleri (tek tedarikçi bağımlılığı var mı?)
+- ESG skoru veya notasyonu
+- Son büyük M&A ve sonuçları
 
-HER VERİYİ SOMUT RAKAMLARLA VER. BULAMAZSAN "VERİ YOK" YAZ.
+TÜM VERİLERİ SOMUT RAKAMLARLA VER. TAHMİN YAPIYORSAN "(yaklaşık)" NOTU DÜŞEREK VER, AMA ASLA BOŞ BIRAKMA.
 `;
+
 
 async function gatherDataWithPerplexity(ticker: string): Promise<{ success: boolean; data?: string; error?: string }> {
   const apiKey = process.env.PERPLEXITY_API_KEY;
@@ -668,7 +704,7 @@ async function gatherDataWithPerplexity(ticker: string): Promise<{ success: bool
         messages: [
           {
             role: "system",
-            content: "Sen bir finansal veri araştırma asistanısın. İnternetten en güncel ve doğru finansal verileri toplarsın. Somut rakamlar ve tarihler ver. Bulamadığın veriyi 'VERİ YOK' olarak belirt.",
+            content: "Sen uzman bir finansal veri araştırmacısın. Yahoo Finance, Google Finance, Macrotrends, Finviz, MarketWatch ve SEC filings gibi birden fazla kaynağı kullanarak verileri toplarsın. Her veriyi MUTLAKA somut rakamlarla ver. Kesin değer bulamazsan mevcut kaynaklardan yaklaşık değer hesaplayıp '(yaklaşık)' notu ile sun. ASLA veri alanını boş bırakma — büyük şirketlerin verileri her zaman bulunabilir.",
           },
           { role: "user", content: DATA_GATHERING_PROMPT(ticker) },
         ],
