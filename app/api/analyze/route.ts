@@ -632,6 +632,7 @@ export async function POST(request: NextRequest) {
           model: "claude-sonnet-4-20250514",
           max_tokens: 16000,
           temperature: 0,
+          top_k: 1,
           system: getSystemPrompt(language),
           messages: [
             {
