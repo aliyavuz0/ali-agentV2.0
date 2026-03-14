@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { createClient } from "@supabase/supabase-js";
 
 const getSystemPrompt = (language: string = "Türkçe") => `
 ═══════════════════════════════════════════════════════════════
@@ -749,13 +750,20 @@ async function analyzeWithClaude(ticker: string, gatheredData: string, language:
         "Content-Type": "application/json",
         "x-api-key": apiKey,
         "anthropic-version": "2023-06-01",
+        "anthropic-beta": "prompt-caching-2024-07-31",
       },
       body: JSON.stringify({
         model: "claude-sonnet-4-20250514",
         max_tokens: 16000,
         temperature: 0,
         top_p: 0.1,
-        system: getSystemPrompt(language),
+        system: [
+          {
+            type: "text",
+            text: getSystemPrompt(language),
+            cache_control: { type: "ephemeral" }
+          }
+        ],
         messages: [
           {
             role: "user",
@@ -838,6 +846,34 @@ export async function POST(request: NextRequest) {
   try {
     const { ticker, language } = await request.json();
     if (!ticker) return NextResponse.json({ error: "Ticker gerekli" }, { status: 400 });
+
+    // ━━━ CACHE CHECK (Supabase 24 Saat) ━━━
+    try {
+      if (process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+        const supabase = createClient(
+          process.env.NEXT_PUBLIC_SUPABASE_URL,
+          process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+        );
+        const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+        
+        const { data: cachedItems } = await supabase
+          .from("analyses")
+          .select("full_result, created_at")
+          .eq("ticker", ticker)
+          .gte("created_at", yesterday)
+          .order("created_at", { ascending: false })
+          .limit(1);
+
+        if (cachedItems && cachedItems.length > 0) {
+          console.log(`[${ticker}] ⚡ Cache Hit! (Son 24 saatte analiz edilmiş)`);
+          const cachedResult = cachedItems[0].full_result;
+          cachedResult._cached = true; // Frontend için önbellek işareti
+          return NextResponse.json(cachedResult);
+        }
+      }
+    } catch (e) {
+      console.log(`[${ticker}] Cache kontrolü yapılamadı, API'ye gidiliyor...`, e);
+    }
 
     // ━━━ STAGE 1: Perplexity ile veri topla ━━━
     console.log(`[${ticker}] ▸ Stage 1: Perplexity ile veri toplanıyor...`);
