@@ -25,7 +25,7 @@ export default function AnalysisResult({ result, language }: AnalysisResultProps
   const auditLbls = AUDIT_LABELS[language] || AUDIT_LABELS.TR;
 
   const regime = regimes[result.market_regime] || regimes.normal;
-  const score = result.final_score;
+  const score = Number(result.final_score) || 0;
 
   return (
     <div className="space-y-4 sm:space-y-5">
@@ -309,6 +309,43 @@ export default function AnalysisResult({ result, language }: AnalysisResultProps
       {/* ━━━ Disclaimer ━━━ */}
       <div className="bg-red-500/5 border border-red-500/10 rounded-xl p-4 text-center">
         <p className="text-[10px] sm:text-[11px] text-red-400/70">{t.disclaimer}</p>
+      </div>
+
+      {/* ━━━ PDF Export Button ━━━ */}
+      <div className="flex justify-center">
+        <button
+          onClick={async () => {
+            try {
+              const res = await fetch("/api/export-pdf", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ result, language }),
+              });
+              const data = await res.json();
+              if (!res.ok || !data.html) throw new Error(data.error || "PDF oluşturulamadı");
+
+              // Open in new tab for print-to-PDF
+              const w = window.open("", "_blank");
+              if (w) {
+                w.document.write(data.html);
+                w.document.close();
+                // Auto-trigger print dialog after brief delay
+                setTimeout(() => w.print(), 500);
+              }
+            } catch (err) {
+              console.error("PDF export error:", err);
+              alert(language === "TR" ? "PDF oluşturulurken hata oluştu." : "Error creating PDF.");
+            }
+          }}
+          className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#13110E] border border-[#2A2520] rounded-xl text-[#A09060] text-xs font-bold hover:border-[#4A4530] hover:text-[#D4C8A0] transition-all cursor-pointer active:scale-[0.98]"
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" />
+            <polyline points="7 10 12 15 17 10" />
+            <line x1="12" y1="15" x2="12" y2="3" />
+          </svg>
+          {language === "TR" ? "PDF OLARAK İNDİR" : "DOWNLOAD PDF"}
+        </button>
       </div>
 
       {/* ━━━ Quick → Deep Upgrade CTA ━━━ */}

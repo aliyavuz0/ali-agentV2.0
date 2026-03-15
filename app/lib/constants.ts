@@ -202,6 +202,6 @@ export const getBgColor = (score: number): string =>
 
 export const getFilterScore = (result: any, filterKey: string): number => {
   if (!result) return 0;
-  if (filterKey === "filter_1") return result.filter_1?.score_normalized ?? 0;
-  return result[filterKey]?.score ?? 0;
+  if (filterKey === "filter_1") return Number(result.filter_1?.score_normalized ?? result.filter_1?.score) || 0;
+  return Number(result[filterKey]?.score) || 0;
 };
