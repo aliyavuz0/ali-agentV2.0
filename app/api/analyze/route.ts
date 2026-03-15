@@ -797,6 +797,7 @@ SADECE JSON formatında cevap ver.`,
       .trim();
     const result = JSON.parse(cleaned);
     result._provider = "perplexity+claude";
+    normalizeResult(result);
     return { success: true, data: result };
   } catch (err: any) {
     console.error("Claude analiz hatası:", err);
@@ -849,10 +850,59 @@ async function analyzeWithHaiku(ticker: string, language: string): Promise<{ suc
       .trim();
     const result = JSON.parse(cleaned);
     result._provider = "haiku";
+    // Server-side score normalization — Haiku bazen final_score'u yanlış hesaplar
+    normalizeResult(result);
     return { success: true, data: result };
   } catch (err: any) {
     console.error("Haiku analiz hatası:", err);
     return { success: false, error: err.message || "Haiku analiz hatası" };
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// SERVER-SIDE SCORE NORMALIZATION
+// AI modelleri bazen final_score'u yanlış hesaplar veya boş bırakır.
+// Bu fonksiyon her sonucu doğrular ve gerekirse yeniden hesaplar.
+// ═══════════════════════════════════════════════════════════════
+
+function normalizeResult(result: any): void {
+  // 1. Filtre skorlarını number'a çevir
+  const s1 = Number(result.filter_1?.score_normalized ?? result.filter_1?.score) || 0;
+  const s2 = Number(result.filter_2?.score) || 0;
+  const s3 = Number(result.filter_3?.score) || 0;
+  const s4 = Number(result.filter_4?.score) || 0;
+
+  // 2. Ağırlıkları al veya varsayılan kullan
+  const w1 = Number(result.weights?.w1) || 1.0;
+  const w2 = Number(result.weights?.w2) || 1.0;
+  const w3 = Number(result.weights?.w3) || 1.0;
+  const w4 = Number(result.weights?.w4) || 1.0;
+
+  // 3. Dinamik ağırlıklı ortalamayı hesapla
+  const totalWeight = w1 + w2 + w3 + w4;
+  const calculated = totalWeight > 0
+    ? (s1 * w1 + s2 * w2 + s3 * w3 + s4 * w4) / totalWeight
+    : 0;
+
+  // 4. final_score yoksa veya 0'sa server-side hesapla
+  const existing = Number(result.final_score) || 0;
+  if (existing < 1 || isNaN(existing)) {
+    result.final_score = Math.round(calculated * 100) / 100;
+  }
+
+  // 5. Verdict doğrula
+  const fs = Number(result.final_score);
+  const anyBelow60 = s1 < 60 || s2 < 60 || s3 < 60 || s4 < 60;
+  if (anyBelow60) {
+    result.barrier_triggered = true;
+    result.verdict = "TAVSIYE_EDILMEZ";
+  } else if (!result.verdict || result.verdict === "") {
+    result.verdict = fs >= 80 ? "MUKEMMEL" : fs >= 60 ? "KABULEDILEBILIR" : "TAVSIYE_EDILMEZ";
+  }
+
+  // 6. Weights yoksa oluştur
+  if (!result.weights) {
+    result.weights = { w1, w2, w3, w4 };
   }
 }
 
@@ -892,6 +942,7 @@ async function callGemini(ticker: string, language: string): Promise<{ success: 
       .trim();
     const result = JSON.parse(cleaned);
     result._provider = "gemini";
+    normalizeResult(result);
     return { success: true, data: result };
   } catch {
     return { success: false, error: "Gemini çıktısı işlenemedi" };
