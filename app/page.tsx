@@ -18,6 +18,7 @@ export default function Home() {
   const [ticker, setTicker] = useState("");
   const [loading, setLoading] = useState(false);
   const [activeTier, setActiveTier] = useState<"quick" | "deep">("deep");
+  const [shariaEnabled, setShariaEnabled] = useState(false);
   const [result, setResult] = useState<any>(null);
   const [error, setError] = useState("");
   const [history, setHistory] = useState<any[]>([]);
@@ -130,7 +131,7 @@ export default function Home() {
       const response = await fetch("/api/analyze", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ticker, language, tier }),
+        body: JSON.stringify({ ticker, language, tier, sharia_enabled: shariaEnabled }),
       });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || "Analysis failed");

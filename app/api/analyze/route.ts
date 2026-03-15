@@ -692,6 +692,153 @@ TÜM VERİLERİ SOMUT RAKAMLARLA VER. TAHMİN YAPIYORSAN "(yaklaşık)" NOTU DÜ
 `;
 
 
+// ═══════════════════════════════════════════════════════════════
+// ŞER'İ UYUM ANALİZİ (AAOIFI STANDARTLARINA GÖRE)
+// Opsiyonel filtre — kullanıcı profilinde sharia_enabled=true ise çalışır
+// ═══════════════════════════════════════════════════════════════
+
+const SHARIA_PROMPT = (ticker: string, language: string) => `
+${language === "EN" ? "Analyze" : "Analiz et"}: ${ticker}
+
+${language === "EN" ? `
+You are a Shariah compliance screening expert following AAOIFI (Accounting and Auditing Organization for Islamic Financial Institutions) standards.
+
+Analyze the given stock for Islamic investment compliance using these criteria:
+
+1. BUSINESS ACTIVITY SCREENING (Qualitative):
+- Is the company involved in any HARAM sectors? Check for:
+  • Alcohol production/distribution
+  • Tobacco
+  • Pork-related products
+  • Conventional banking/insurance (interest-based)
+  • Gambling/casinos
+  • Adult entertainment
+  • Weapons manufacturing (controversial)
+- If PRIMARY business is haram → FAIL immediately
+- If <5% revenue from haram sources → PASS with note
+- If 5-33% revenue from haram → QUESTIONABLE
+
+2. FINANCIAL RATIO SCREENING (Quantitative — AAOIFI thresholds):
+- Total Interest-Bearing Debt / Market Cap < 33%
+- Cash + Interest-Bearing Securities / Market Cap < 33%
+- Accounts Receivable / Market Cap < 33%
+- Interest Income / Total Revenue < 5%
+- Haram Revenue / Total Revenue < 5%
+
+3. PURIFICATION REQUIREMENT:
+- Calculate the percentage of impure income that must be donated
+- Formula: (Haram income / Total income) × Dividend per share
+
+RESPOND IN JSON ONLY:
+{
+  "sharia_status": "COMPLIANT" | "NON_COMPLIANT" | "QUESTIONABLE",
+  "business_screening": {
+    "passed": true/false,
+    "haram_sectors_found": [],
+    "haram_revenue_pct": 0,
+    "details": "explanation"
+  },
+  "financial_screening": {
+    "passed": true/false,
+    "debt_ratio": { "value": 0, "threshold": 33, "passed": true/false },
+    "cash_securities_ratio": { "value": 0, "threshold": 33, "passed": true/false },
+    "receivables_ratio": { "value": 0, "threshold": 33, "passed": true/false },
+    "interest_income_ratio": { "value": 0, "threshold": 5, "passed": true/false },
+    "haram_revenue_ratio": { "value": 0, "threshold": 5, "passed": true/false }
+  },
+  "purification_pct": 0,
+  "commentary": "Brief explanation of compliance status"
+}
+` : `
+Sen AAOIFI (İslami Finansal Kuruluşlar Muhasebe ve Denetim Organizasyonu) standartlarına göre çalışan bir Şer'i uyumluluk tarama uzmanısın.
+
+Verilen hisse senedini İslami yatırım uyumluluğu açısından şu kriterlerle analiz et:
+
+1. İŞ FAALİYETİ TARAMASI (Niteliksel):
+- Şirket HARAM sektörlerde faaliyet gösteriyor mu? Kontrol et:
+  • Alkol üretimi/dağıtımı
+  • Tütün
+  • Domuz ilişkili ürünler
+  • Konvansiyonel bankacılık/sigortacılık (faiz bazlı)
+  • Kumar/casino
+  • Yetişkin eğlence
+  • Tartışmalı silah üretimi
+- Ana iş HARAM ise → DOĞRUDAN RED
+- Gelirin <%5'i haram kaynaklıysa → GEÇTİ (not ile)
+- Gelirin %5-33'ü haram ise → ŞÜPHELİ
+
+2. FİNANSAL ORAN TARAMASI (Niceliksel — AAOIFI eşikleri):
+- Toplam Faizli Borç / Piyasa Değeri < %33
+- Nakit + Faizli Menkul Kıymetler / Piyasa Değeri < %33
+- Ticari Alacaklar / Piyasa Değeri < %33
+- Faiz Geliri / Toplam Gelir < %5
+- Haram Gelir / Toplam Gelir < %5
+
+3. ARINDIRMA GEREKLİLİĞİ:
+- Bağışlanması gereken saf olmayan gelir yüzdesini hesapla
+- Formül: (Haram gelir / Toplam gelir) × Hisse başına temettü
+
+SADECE JSON FORMATINDA CEVAP VER:
+{
+  "sharia_status": "UYGUN" | "UYGUN_DEGIL" | "SUPHELI",
+  "business_screening": {
+    "passed": true/false,
+    "haram_sectors_found": [],
+    "haram_revenue_pct": 0,
+    "details": "açıklama"
+  },
+  "financial_screening": {
+    "passed": true/false,
+    "debt_ratio": { "value": 0, "threshold": 33, "passed": true/false },
+    "cash_securities_ratio": { "value": 0, "threshold": 33, "passed": true/false },
+    "receivables_ratio": { "value": 0, "threshold": 33, "passed": true/false },
+    "interest_income_ratio": { "value": 0, "threshold": 5, "passed": true/false },
+    "haram_revenue_ratio": { "value": 0, "threshold": 5, "passed": true/false }
+  },
+  "purification_pct": 0,
+  "commentary": "Uyumluluk durumunun kısa açıklaması"
+}
+`}
+SADECE JSON döndür, başka hiçbir şey yazma.`;
+
+async function analyzeSharia(ticker: string, language: string): Promise<any | null> {
+  const apiKey = process.env.ANTHROPIC_API_KEY;
+  if (!apiKey) return null;
+
+  try {
+    const response = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-api-key": apiKey,
+        "anthropic-version": "2023-06-01",
+      },
+      body: JSON.stringify({
+        model: "claude-haiku-4-5-20251001",
+        max_tokens: 4000,
+        temperature: 0,
+        messages: [
+          { role: "user", content: SHARIA_PROMPT(ticker, language) },
+        ],
+      }),
+    });
+
+    if (!response.ok) return null;
+
+    const data = await response.json();
+    const text = data.content?.[0]?.text || "";
+    const cleaned = text.replace(/^```json\s*/i, "").replace(/^```\s*/i, "").replace(/\s*```$/i, "").trim();
+    return JSON.parse(cleaned);
+  } catch (err) {
+    console.error("Şer'i analiz hatası:", err);
+    return null;
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// STAGE 1: PERPLEXITY — INTERNET DATA GATHERING
+// ═══════════════════════════════════════════════════════════════
+
 async function gatherDataWithPerplexity(ticker: string): Promise<{ success: boolean; data?: string; error?: string }> {
   const apiKey = process.env.PERPLEXITY_API_KEY;
   if (!apiKey) return { success: false, error: "Perplexity API key bulunamadı" };
@@ -981,7 +1128,14 @@ async function getCachedResult(ticker: string, language: string, tier: "quick" |
 
     if (cached?.full_result) {
       console.log(`[${ticker}] ⚡ Global Cache Hit! (${tier})`);
-      return { ...cached.full_result, _cached: true, _tier: tier };
+      const cachedResult = { ...cached.full_result, _cached: true, _tier: tier };
+      normalizeResult(cachedResult);
+      // Eğer cache'teki skor 0 veya bozuksa, cache'i geçersiz say — yeni analiz yapsın
+      if (Number(cachedResult.final_score) < 1) {
+        console.log(`[${ticker}] ⚠ Cache invalid (score=0), skipping...`);
+        return null;
+      }
+      return cachedResult;
     }
 
     // Fallback: eski analyses tablosundan da kontrol et (geriye uyumluluk)
@@ -997,7 +1151,10 @@ async function getCachedResult(ticker: string, language: string, tier: "quick" |
 
       if (legacyCached && legacyCached.length > 0) {
         console.log(`[${ticker}] ⚡ Legacy Cache Hit!`);
-        return { ...legacyCached[0].full_result, _cached: true, _tier: tier };
+        const legacyResult = { ...legacyCached[0].full_result, _cached: true, _tier: tier };
+        normalizeResult(legacyResult);
+        if (Number(legacyResult.final_score) < 1) return null;
+        return legacyResult;
       }
     }
 
@@ -1043,7 +1200,7 @@ async function setCachedResult(ticker: string, language: string, tier: "quick" |
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { ticker, language = "TR", tier = "deep" } = body;
+    const { ticker, language = "TR", tier = "deep", sharia_enabled = false } = body;
     if (!ticker) return NextResponse.json({ error: "Ticker gerekli" }, { status: 400 });
 
     const normalizedTicker = ticker.toUpperCase().trim();
@@ -1051,7 +1208,14 @@ export async function POST(request: NextRequest) {
 
     // ━━━ 1. GLOBAL CACHE CHECK ━━━
     const cached = await getCachedResult(normalizedTicker, language, analysisT);
-    if (cached) return NextResponse.json(cached);
+    if (cached) {
+      // Eğer şeri analiz isteniyorsa ve cache'te yoksa, sadece şeri kısmını ekle
+      if (sharia_enabled && !cached.sharia_analysis) {
+        const sharia = await analyzeSharia(normalizedTicker, language);
+        if (sharia) cached.sharia_analysis = sharia;
+      }
+      return NextResponse.json(cached);
+    }
 
     // ━━━ 2A. QUICK TIER → Haiku (primary) → Gemini (fallback) ━━━
     if (analysisT === "quick") {
@@ -1060,6 +1224,7 @@ export async function POST(request: NextRequest) {
       const haikuResult = await analyzeWithHaiku(normalizedTicker, language);
       if (haikuResult.success && haikuResult.data) {
         haikuResult.data._tier = "quick";
+        if (sharia_enabled) haikuResult.data.sharia_analysis = await analyzeSharia(normalizedTicker, language);
         await setCachedResult(normalizedTicker, language, "quick", haikuResult.data);
         console.log(`[${normalizedTicker}] ✓ Haiku quick başarılı`);
         return NextResponse.json(haikuResult.data);
@@ -1071,6 +1236,7 @@ export async function POST(request: NextRequest) {
       const geminiResult = await callGemini(normalizedTicker, language);
       if (geminiResult.success && geminiResult.data) {
         geminiResult.data._tier = "quick";
+        if (sharia_enabled) geminiResult.data.sharia_analysis = await analyzeSharia(normalizedTicker, language);
         await setCachedResult(normalizedTicker, language, "quick", geminiResult.data);
         console.log(`[${normalizedTicker}] ✓ Gemini quick fallback başarılı`);
         return NextResponse.json(geminiResult.data);
@@ -1091,6 +1257,7 @@ export async function POST(request: NextRequest) {
       const claudeResult = await analyzeWithClaude(normalizedTicker, perplexityResult.data, language);
       if (claudeResult.success && claudeResult.data) {
         claudeResult.data._tier = "deep";
+        if (sharia_enabled) claudeResult.data.sharia_analysis = await analyzeSharia(normalizedTicker, language);
         await setCachedResult(normalizedTicker, language, "deep", claudeResult.data);
         console.log(`[${normalizedTicker}] ✓ Perplexity+Claude başarılı`);
         return NextResponse.json(claudeResult.data);
@@ -1105,6 +1272,7 @@ export async function POST(request: NextRequest) {
     const geminiResult = await callGemini(normalizedTicker, language);
     if (geminiResult.success && geminiResult.data) {
       geminiResult.data._tier = "deep";
+      if (sharia_enabled) geminiResult.data.sharia_analysis = await analyzeSharia(normalizedTicker, language);
       await setCachedResult(normalizedTicker, language, "deep", geminiResult.data);
       console.log(`[${normalizedTicker}] ✓ Gemini fallback başarılı`);
       return NextResponse.json(geminiResult.data);
