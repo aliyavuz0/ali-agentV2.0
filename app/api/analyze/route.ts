@@ -790,8 +790,12 @@ SADECE JSON formatında cevap ver.`,
 
     const data = await response.json();
     const text = data.content?.[0]?.text || "";
-    const jsonMatch = text.match(/```json\s*([\s\S]*?)```/) || text.match(/```\s*([\s\S]*?)```/) || [null, text];
-    const result = JSON.parse(jsonMatch[1].trim());
+    const cleaned = text
+      .replace(/^```json\s*/i, "")
+      .replace(/^```\s*/i, "")
+      .replace(/\s*```$/i, "")
+      .trim();
+    const result = JSON.parse(cleaned);
     result._provider = "perplexity+claude";
     return { success: true, data: result };
   } catch (err: any) {
@@ -838,8 +842,12 @@ async function analyzeWithHaiku(ticker: string, language: string): Promise<{ suc
 
     const data = await response.json();
     const text = data.content?.[0]?.text || "";
-    const jsonMatch = text.match(/```json\s*([\s\S]*?)```/) || text.match(/```\s*([\s\S]*?)```/) || [null, text];
-    const result = JSON.parse(jsonMatch[1].trim());
+    const cleaned = text
+      .replace(/^```json\s*/i, "")
+      .replace(/^```\s*/i, "")
+      .replace(/\s*```$/i, "")
+      .trim();
+    const result = JSON.parse(cleaned);
     result._provider = "haiku";
     return { success: true, data: result };
   } catch (err: any) {
@@ -877,8 +885,12 @@ async function callGemini(ticker: string, language: string): Promise<{ success: 
   const data = await response.json();
   const text = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
   try {
-    const jsonMatch = text.match(/```json\s*([\s\S]*?)```/) || text.match(/```\s*([\s\S]*?)```/) || [null, text];
-    const result = JSON.parse(jsonMatch[1].trim());
+    const cleaned = text
+      .replace(/^```json\s*/i, "")
+      .replace(/^```\s*/i, "")
+      .replace(/\s*```$/i, "")
+      .trim();
+    const result = JSON.parse(cleaned);
     result._provider = "gemini";
     return { success: true, data: result };
   } catch {
