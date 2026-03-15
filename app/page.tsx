@@ -17,6 +17,7 @@ export default function Home() {
 
   const [ticker, setTicker] = useState("");
   const [loading, setLoading] = useState(false);
+  const [activeTier, setActiveTier] = useState<"quick" | "deep">("deep");
   const [result, setResult] = useState<any>(null);
   const [error, setError] = useState("");
   const [history, setHistory] = useState<any[]>([]);
@@ -44,6 +45,19 @@ export default function Home() {
     window.addEventListener("resize", onResize);
     return () => window.removeEventListener("resize", onResize);
   }, []);
+
+  // Listen for deep analysis upgrade from AnalysisResult CTA
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent).detail;
+      if (detail?.ticker) {
+        setTicker(detail.ticker);
+        setTimeout(() => handleAnalyze("deep"), 100);
+      }
+    };
+    window.addEventListener("triggerDeepAnalysis", handler);
+    return () => window.removeEventListener("triggerDeepAnalysis", handler);
+  }, [ticker, language]);
 
   const signInWithGoogle = async () => {
     await supabase.auth.signInWithOAuth({
@@ -108,14 +122,15 @@ export default function Home() {
   };
 
   // ━━━ ANALYZE ━━━
-  const handleAnalyze = async () => {
+  const handleAnalyze = async (tier: "quick" | "deep" = "deep") => {
     if (!ticker.trim()) return;
+    setActiveTier(tier);
     setLoading(true); setError(""); setResult(null);
     try {
       const response = await fetch("/api/analyze", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ticker, language }),
+        body: JSON.stringify({ ticker, language, tier }),
       });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || "Analysis failed");
@@ -196,32 +211,78 @@ export default function Home() {
           </div>
 
           {/* Search */}
-          <div className="flex gap-2 mb-6 sm:mb-8 bg-[#0D0B08] border border-[#1A1610] rounded-xl sm:rounded-2xl p-1 sm:p-1.5">
-            <input
-              type="text" value={ticker}
-              onChange={(e) => setTicker(e.target.value.toUpperCase())}
-              onKeyDown={(e) => e.key === "Enter" && handleAnalyze()}
-              placeholder="AAPL, MSFT, THYAO..."
-              disabled={loading}
-              className="flex-1 min-w-0 px-3 sm:px-5 py-3 sm:py-4 bg-transparent text-lg sm:text-xl font-mono font-bold text-[#F0E8D0] placeholder-[#40382A] outline-none tracking-wider sm:tracking-widest"
-            />
-            <button
-              onClick={handleAnalyze}
-              disabled={loading || !ticker.trim()}
-              className="px-4 sm:px-8 py-3 sm:py-4 bg-red-700 hover:bg-red-600 disabled:bg-[#1A1610] disabled:text-[#605030] text-white text-sm sm:text-base font-bold rounded-lg sm:rounded-xl tracking-wider transition-all flex items-center gap-2 cursor-pointer flex-shrink-0 active:scale-[0.98]"
-            >
-              {loading ? (
-                <><div className="w-4 h-4 border-2 border-[#605030] border-t-[#A08050] rounded-full animate-spin" /><span className="hidden sm:inline">{t.analyzing}</span></>
-              ) : t.analyze}
-            </button>
+          <div className="mb-6 sm:mb-8">
+            <div className="flex gap-2 bg-[#0D0B08] border border-[#1A1610] rounded-xl sm:rounded-2xl p-1 sm:p-1.5">
+              <input
+                type="text" value={ticker}
+                onChange={(e) => setTicker(e.target.value.toUpperCase())}
+                onKeyDown={(e) => e.key === "Enter" && handleAnalyze("quick")}
+                placeholder="AAPL, MSFT, THYAO..."
+                disabled={loading}
+                className="flex-1 min-w-0 px-3 sm:px-5 py-3 sm:py-4 bg-transparent text-lg sm:text-xl font-mono font-bold text-[#F0E8D0] placeholder-[#40382A] outline-none tracking-wider sm:tracking-widest"
+              />
+              {/* Quick analyze button */}
+              <button
+                onClick={() => handleAnalyze("quick")}
+                disabled={loading || !ticker.trim()}
+                className="px-3 sm:px-5 py-3 sm:py-4 bg-[#1A1610] hover:bg-[#2A2520] disabled:opacity-40 text-[#D4C8A0] text-xs sm:text-sm font-bold rounded-lg sm:rounded-xl tracking-wider transition-all flex items-center gap-1.5 cursor-pointer flex-shrink-0 active:scale-[0.98] border border-[#2A2520]"
+              >
+                {loading ? (
+                  <div className="w-4 h-4 border-2 border-[#605030] border-t-[#A08050] rounded-full animate-spin" />
+                ) : (
+                  <>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="flex-shrink-0">
+                      <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+                    </svg>
+                    <span className="hidden sm:inline">{language === "TR" ? "HIZLI" : "QUICK"}</span>
+                  </>
+                )}
+              </button>
+              {/* Deep analyze button */}
+              <button
+                onClick={() => handleAnalyze("deep")}
+                disabled={loading || !ticker.trim()}
+                className="px-3 sm:px-6 py-3 sm:py-4 bg-red-700 hover:bg-red-600 disabled:bg-[#1A1610] disabled:text-[#605030] text-white text-xs sm:text-sm font-bold rounded-lg sm:rounded-xl tracking-wider transition-all flex items-center gap-1.5 cursor-pointer flex-shrink-0 active:scale-[0.98]"
+              >
+                {loading ? (
+                  <div className="w-4 h-4 border-2 border-[#605030] border-t-white rounded-full animate-spin" />
+                ) : (
+                  <>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="flex-shrink-0">
+                      <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
+                    </svg>
+                    <span className="hidden sm:inline">{language === "TR" ? "DERİN ANALİZ" : "DEEP ANALYSIS"}</span>
+                  </>
+                )}
+              </button>
+            </div>
+            {/* Tier açıklaması */}
+            <div className="flex justify-end gap-4 mt-2 px-1">
+              <span className="text-[10px] text-[#504020]">
+                <span className="text-[#605030]">⚡</span> {language === "TR" ? "Hızlı: ~10 sn, temel skor" : "Quick: ~10s, basic score"}
+              </span>
+              <span className="text-[10px] text-[#504020]">
+                <span className="text-red-500/60">◉</span> {language === "TR" ? "Derin: ~60 sn, tam rapor" : "Deep: ~60s, full report"}
+              </span>
+            </div>
           </div>
 
           {/* States */}
           {loading && (
             <div className="text-center py-12 sm:py-16">
-              <div className="w-12 h-12 border-2 border-[#1A1610] border-t-red-500 rounded-full animate-spin mx-auto mb-5" />
-              <p className="text-[#605030] animate-pulse text-sm sm:text-base px-4">{t.loading1}</p>
-              <p className="text-[#40382A] text-xs mt-2">{t.loading2}</p>
+              <div className={`w-12 h-12 border-2 border-[#1A1610] rounded-full animate-spin mx-auto mb-5 ${
+                activeTier === "quick" ? "border-t-[#A09060]" : "border-t-red-500"
+              }`} />
+              <p className="text-[#605030] animate-pulse text-sm sm:text-base px-4">
+                {activeTier === "quick"
+                  ? (language === "TR" ? "Hızlı analiz yapılıyor..." : "Running quick analysis...")
+                  : t.loading1}
+              </p>
+              <p className="text-[#40382A] text-xs mt-2">
+                {activeTier === "quick"
+                  ? (language === "TR" ? "Bu işlem 5-10 saniye sürer." : "This takes about 5-10 seconds.")
+                  : t.loading2}
+              </p>
             </div>
           )}
 

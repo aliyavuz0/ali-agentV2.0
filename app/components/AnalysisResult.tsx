@@ -31,9 +31,26 @@ export default function AnalysisResult({ result, language }: AnalysisResultProps
     <div className="space-y-4 sm:space-y-5">
       {/* ━━━ Final Score Card ━━━ */}
       <div className="text-center py-8 sm:py-10 rounded-2xl border border-[#1A1610] bg-[#0D0B08]">
-        <p className="font-mono text-xs sm:text-sm text-[#605030] tracking-widest mb-4">
+        <p className="font-mono text-xs sm:text-sm text-[#605030] tracking-widest mb-3">
           {result.ticker} — {t.finalScore}
         </p>
+
+        {/* Tier badge */}
+        {result._tier && (
+          <div className="flex justify-center mb-3">
+            <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold tracking-wider ${
+              result._tier === "deep"
+                ? "bg-red-500/10 text-red-400 border border-red-500/20"
+                : "bg-[#2A2520] text-[#A09060] border border-[#3A3530]"
+            }`}>
+              {result._tier === "deep" ? (
+                <>{language === "TR" ? "◉ DERİN ANALİZ" : "◉ DEEP ANALYSIS"}{result._cached ? (language === "TR" ? " · ÖNBELLEK" : " · CACHED") : ""}</>
+              ) : (
+                <>{language === "TR" ? "⚡ HIZLI ANALİZ" : "⚡ QUICK ANALYSIS"}{result._cached ? (language === "TR" ? " · ÖNBELLEK" : " · CACHED") : ""}</>
+              )}
+            </span>
+          </div>
+        )}
 
         {/* Regime badges */}
         <div className="flex flex-wrap justify-center gap-2 mb-4">
@@ -293,6 +310,34 @@ export default function AnalysisResult({ result, language }: AnalysisResultProps
       <div className="bg-red-500/5 border border-red-500/10 rounded-xl p-4 text-center">
         <p className="text-[10px] sm:text-[11px] text-red-400/70">{t.disclaimer}</p>
       </div>
+
+      {/* ━━━ Quick → Deep Upgrade CTA ━━━ */}
+      {result._tier === "quick" && (
+        <div className="bg-gradient-to-r from-red-500/5 to-purple-500/5 border border-[#2A2520] rounded-xl p-5 text-center">
+          <p className="text-sm font-bold text-[#D4C8A0] mb-2">
+            {language === "TR"
+              ? "Daha detaylı analiz ister misin?"
+              : "Want a more detailed analysis?"}
+          </p>
+          <p className="text-[11px] text-[#706040] mb-4">
+            {language === "TR"
+              ? "Derin analiz, Perplexity + Claude ile internet'ten canlı veri toplayarak 4 süzgeci detaylı puanlar."
+              : "Deep analysis uses Perplexity + Claude to gather live data from the internet and score all 4 filters in detail."}
+          </p>
+          <button
+            onClick={() => {
+              const event = new CustomEvent("triggerDeepAnalysis", { detail: { ticker: result.ticker } });
+              window.dispatchEvent(event);
+            }}
+            className="inline-flex items-center gap-2 px-6 py-3 bg-red-700 hover:bg-red-600 text-white text-sm font-bold rounded-xl tracking-wider transition-all cursor-pointer active:scale-[0.98]"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
+            </svg>
+            {language === "TR" ? "DERİN ANALİZ YAP" : "RUN DEEP ANALYSIS"}
+          </button>
+        </div>
+      )}
     </div>
   );
 }
