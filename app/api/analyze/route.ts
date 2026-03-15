@@ -801,6 +801,54 @@ SADECE JSON formatında cevap ver.`,
 }
 
 // ═══════════════════════════════════════════════════════════════
+// QUICK TIER: CLAUDE HAIKU (hızlı, ucuz, ~$0.01)
+// ═══════════════════════════════════════════════════════════════
+
+async function analyzeWithHaiku(ticker: string, language: string): Promise<{ success: boolean; data?: any; error?: string }> {
+  const apiKey = process.env.ANTHROPIC_API_KEY;
+  if (!apiKey) return { success: false, error: "Anthropic API key bulunamadı" };
+
+  try {
+    const response = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-api-key": apiKey,
+        "anthropic-version": "2023-06-01",
+      },
+      body: JSON.stringify({
+        model: "claude-haiku-4-5-20251001",
+        max_tokens: 8000,
+        temperature: 0,
+        system: getSystemPrompt(language),
+        messages: [
+          {
+            role: "user",
+            content: `${ticker} hissesini Dörtlü Süzgeç Metodolojisi ile analiz et. Mevcut bilgilerini kullanarak 4 süzgeci puanla, piyasa rejimini belirle, dinamik ağırlıklandırmayı uygula, öz-denetim protokolünü çalıştır ve nihai skoru hesapla. SADECE JSON formatında cevap ver.`,
+          },
+        ],
+      }),
+    });
+
+    if (!response.ok) {
+      const errText = await response.text();
+      console.error("Haiku API hatası:", errText);
+      return { success: false, error: `Haiku hatası (${response.status}): ${errText.substring(0, 200)}` };
+    }
+
+    const data = await response.json();
+    const text = data.content?.[0]?.text || "";
+    const jsonMatch = text.match(/```json\s*([\s\S]*?)```/) || text.match(/```\s*([\s\S]*?)```/) || [null, text];
+    const result = JSON.parse(jsonMatch[1].trim());
+    result._provider = "haiku";
+    return { success: true, data: result };
+  } catch (err: any) {
+    console.error("Haiku analiz hatası:", err);
+    return { success: false, error: err.message || "Haiku analiz hatası" };
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
 // FALLBACK: GEMINI (STANDALONE)
 // ═══════════════════════════════════════════════════════════════
 
@@ -924,8 +972,8 @@ async function setCachedResult(ticker: string, language: string, tier: "quick" |
 
 // ═══════════════════════════════════════════════════════════════
 // MAIN API HANDLER — İKİ KATMANLI MİMARİ
-// tier=quick → Gemini Flash (hızlı, ucuz, ~$0.01)
-// tier=deep  → Perplexity + Claude (derin, detaylı, ~$0.12)
+// tier=quick → Claude Haiku (hızlı, ucuz, ~$0.01) → Gemini fallback
+// tier=deep  → Perplexity + Claude Sonnet (derin, ~$0.12) → Gemini fallback
 // Her ikisinde de global cache aktif
 // ═══════════════════════════════════════════════════════════════
 
@@ -942,17 +990,31 @@ export async function POST(request: NextRequest) {
     const cached = await getCachedResult(normalizedTicker, language, analysisT);
     if (cached) return NextResponse.json(cached);
 
-    // ━━━ 2A. QUICK TIER → Gemini Flash (hızlı + ucuz) ━━━
+    // ━━━ 2A. QUICK TIER → Haiku (primary) → Gemini (fallback) ━━━
     if (analysisT === "quick") {
-      console.log(`[${normalizedTicker}] ▸ Quick Analysis: Gemini Flash...`);
+      // Try Haiku first
+      console.log(`[${normalizedTicker}] ▸ Quick Analysis: Claude Haiku...`);
+      const haikuResult = await analyzeWithHaiku(normalizedTicker, language);
+      if (haikuResult.success && haikuResult.data) {
+        haikuResult.data._tier = "quick";
+        await setCachedResult(normalizedTicker, language, "quick", haikuResult.data);
+        console.log(`[${normalizedTicker}] ✓ Haiku quick başarılı`);
+        return NextResponse.json(haikuResult.data);
+      }
+      console.error(`[${normalizedTicker}] ✗ Haiku başarısız: ${haikuResult.error}`);
+
+      // Fallback to Gemini
+      console.log(`[${normalizedTicker}] ▸ Quick Fallback: Gemini Flash...`);
       const geminiResult = await callGemini(normalizedTicker, language);
       if (geminiResult.success && geminiResult.data) {
         geminiResult.data._tier = "quick";
         await setCachedResult(normalizedTicker, language, "quick", geminiResult.data);
+        console.log(`[${normalizedTicker}] ✓ Gemini quick fallback başarılı`);
         return NextResponse.json(geminiResult.data);
       }
+
       return NextResponse.json(
-        { error: `Quick analiz başarısız: ${geminiResult.error}` },
+        { error: `Quick analiz başarısız. Haiku: ${haikuResult.error} | Gemini: ${geminiResult.error}` },
         { status: 502 }
       );
     }
