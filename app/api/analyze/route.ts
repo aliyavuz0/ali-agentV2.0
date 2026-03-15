@@ -839,64 +839,149 @@ async function callGemini(ticker: string, language: string): Promise<{ success: 
 }
 
 // ═══════════════════════════════════════════════════════════════
-// MAIN API HANDLER — Perplexity → Claude → (Fallback: Gemini)
+// GLOBAL CACHE HELPERS
+// ═══════════════════════════════════════════════════════════════
+
+const CACHE_TTL_HOURS = { quick: 6, deep: 24 };
+
+function getSupabaseAdmin() {
+  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) return null;
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL,
+    process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+  );
+}
+
+async function getCachedResult(ticker: string, language: string, tier: "quick" | "deep"): Promise<any | null> {
+  try {
+    const supabase = getSupabaseAdmin();
+    if (!supabase) return null;
+
+    // Önce yeni global cache tablosunu dene
+    const { data: cached } = await supabase
+      .from("analysis_cache")
+      .select("full_result")
+      .eq("ticker", ticker.toUpperCase())
+      .eq("language", language)
+      .eq("tier", tier)
+      .gt("expires_at", new Date().toISOString())
+      .limit(1)
+      .single();
+
+    if (cached?.full_result) {
+      console.log(`[${ticker}] ⚡ Global Cache Hit! (${tier})`);
+      return { ...cached.full_result, _cached: true, _tier: tier };
+    }
+
+    // Fallback: eski analyses tablosundan da kontrol et (geriye uyumluluk)
+    if (tier === "deep") {
+      const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+      const { data: legacyCached } = await supabase
+        .from("analyses")
+        .select("full_result")
+        .eq("ticker", ticker.toUpperCase())
+        .gte("created_at", yesterday)
+        .order("created_at", { ascending: false })
+        .limit(1);
+
+      if (legacyCached && legacyCached.length > 0) {
+        console.log(`[${ticker}] ⚡ Legacy Cache Hit!`);
+        return { ...legacyCached[0].full_result, _cached: true, _tier: tier };
+      }
+    }
+
+    return null;
+  } catch (e) {
+    console.log(`[${ticker}] Cache kontrolü başarısız:`, e);
+    return null;
+  }
+}
+
+async function setCachedResult(ticker: string, language: string, tier: "quick" | "deep", result: any): Promise<void> {
+  try {
+    const supabase = getSupabaseAdmin();
+    if (!supabase) return;
+
+    const ttlMs = CACHE_TTL_HOURS[tier] * 60 * 60 * 1000;
+    const expiresAt = new Date(Date.now() + ttlMs).toISOString();
+
+    await supabase
+      .from("analysis_cache")
+      .upsert({
+        ticker: ticker.toUpperCase(),
+        language,
+        tier,
+        full_result: result,
+        created_at: new Date().toISOString(),
+        expires_at: expiresAt,
+      }, { onConflict: "ticker,language,tier" });
+
+    console.log(`[${ticker}] 💾 Cache saved (${tier}, TTL: ${CACHE_TTL_HOURS[tier]}h)`);
+  } catch (e) {
+    console.log(`[${ticker}] Cache kayıt hatası:`, e);
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// MAIN API HANDLER — İKİ KATMANLI MİMARİ
+// tier=quick → Gemini Flash (hızlı, ucuz, ~$0.01)
+// tier=deep  → Perplexity + Claude (derin, detaylı, ~$0.12)
+// Her ikisinde de global cache aktif
 // ═══════════════════════════════════════════════════════════════
 
 export async function POST(request: NextRequest) {
   try {
-    const { ticker, language } = await request.json();
+    const body = await request.json();
+    const { ticker, language = "TR", tier = "deep" } = body;
     if (!ticker) return NextResponse.json({ error: "Ticker gerekli" }, { status: 400 });
 
-    // ━━━ CACHE CHECK (Supabase 24 Saat) ━━━
-    try {
-      if (process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
-        const supabase = createClient(
-          process.env.NEXT_PUBLIC_SUPABASE_URL,
-          process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-        );
-        const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
-        
-        const { data: cachedItems } = await supabase
-          .from("analyses")
-          .select("full_result, created_at")
-          .eq("ticker", ticker)
-          .gte("created_at", yesterday)
-          .order("created_at", { ascending: false })
-          .limit(1);
+    const normalizedTicker = ticker.toUpperCase().trim();
+    const analysisT = tier === "quick" ? "quick" : "deep";
 
-        if (cachedItems && cachedItems.length > 0) {
-          console.log(`[${ticker}] ⚡ Cache Hit! (Son 24 saatte analiz edilmiş)`);
-          const cachedResult = cachedItems[0].full_result;
-          cachedResult._cached = true; // Frontend için önbellek işareti
-          return NextResponse.json(cachedResult);
-        }
+    // ━━━ 1. GLOBAL CACHE CHECK ━━━
+    const cached = await getCachedResult(normalizedTicker, language, analysisT);
+    if (cached) return NextResponse.json(cached);
+
+    // ━━━ 2A. QUICK TIER → Gemini Flash (hızlı + ucuz) ━━━
+    if (analysisT === "quick") {
+      console.log(`[${normalizedTicker}] ▸ Quick Analysis: Gemini Flash...`);
+      const geminiResult = await callGemini(normalizedTicker, language);
+      if (geminiResult.success && geminiResult.data) {
+        geminiResult.data._tier = "quick";
+        await setCachedResult(normalizedTicker, language, "quick", geminiResult.data);
+        return NextResponse.json(geminiResult.data);
       }
-    } catch (e) {
-      console.log(`[${ticker}] Cache kontrolü yapılamadı, API'ye gidiliyor...`, e);
+      return NextResponse.json(
+        { error: `Quick analiz başarısız: ${geminiResult.error}` },
+        { status: 502 }
+      );
     }
 
-    // ━━━ STAGE 1: Perplexity ile veri topla ━━━
-    console.log(`[${ticker}] ▸ Stage 1: Perplexity ile veri toplanıyor...`);
-    const perplexityResult = await gatherDataWithPerplexity(ticker);
+    // ━━━ 2B. DEEP TIER → Perplexity + Claude (derin analiz) ━━━
+    console.log(`[${normalizedTicker}] ▸ Deep Stage 1: Perplexity ile veri toplanıyor...`);
+    const perplexityResult = await gatherDataWithPerplexity(normalizedTicker);
 
     if (perplexityResult.success && perplexityResult.data) {
-      // ━━━ STAGE 2: Claude ile analiz yap ━━━
-      console.log(`[${ticker}] ▸ Stage 2: Claude ile analiz yapılıyor...`);
-      const claudeResult = await analyzeWithClaude(ticker, perplexityResult.data, language);
-      if (claudeResult.success) {
-        console.log(`[${ticker}] ✓ Perplexity+Claude başarılı`);
+      console.log(`[${normalizedTicker}] ▸ Deep Stage 2: Claude ile analiz yapılıyor...`);
+      const claudeResult = await analyzeWithClaude(normalizedTicker, perplexityResult.data, language);
+      if (claudeResult.success && claudeResult.data) {
+        claudeResult.data._tier = "deep";
+        await setCachedResult(normalizedTicker, language, "deep", claudeResult.data);
+        console.log(`[${normalizedTicker}] ✓ Perplexity+Claude başarılı`);
         return NextResponse.json(claudeResult.data);
       }
-      console.error(`[${ticker}] ✗ Claude başarısız: ${claudeResult.error}`);
+      console.error(`[${normalizedTicker}] ✗ Claude başarısız: ${claudeResult.error}`);
     } else {
-      console.error(`[${ticker}] ✗ Perplexity başarısız: ${perplexityResult.error}`);
+      console.error(`[${normalizedTicker}] ✗ Perplexity başarısız: ${perplexityResult.error}`);
     }
 
-    // ━━━ FALLBACK: Gemini ━━━
-    console.log(`[${ticker}] ▸ Fallback: Gemini deneniyor...`);
-    const geminiResult = await callGemini(ticker, language);
-    if (geminiResult.success) {
-      console.log(`[${ticker}] ✓ Gemini fallback başarılı`);
+    // ━━━ 3. FALLBACK: Gemini (deep başarısız olursa) ━━━
+    console.log(`[${normalizedTicker}] ▸ Fallback: Gemini deneniyor...`);
+    const geminiResult = await callGemini(normalizedTicker, language);
+    if (geminiResult.success && geminiResult.data) {
+      geminiResult.data._tier = "deep";
+      await setCachedResult(normalizedTicker, language, "deep", geminiResult.data);
+      console.log(`[${normalizedTicker}] ✓ Gemini fallback başarılı`);
       return NextResponse.json(geminiResult.data);
     }
 
@@ -911,4 +996,4 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: error.message || "Sunucu hatası oluştu" }, { status: 500 });
   }
 }
-
+
